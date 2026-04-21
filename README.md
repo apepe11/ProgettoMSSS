@@ -1,2 +1,2 @@
-Progetto MSSS
-Progetto a cura di: Luca, Alessandro, Antonio, Zahra.
+MSSS Project
+Project by: Luca, Alessandro, Antonio, Zahra.

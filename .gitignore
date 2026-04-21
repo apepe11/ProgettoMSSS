@@ -13,3 +13,6 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Ignore generated/temporary module docs
+/emotion_classifier/README.md
