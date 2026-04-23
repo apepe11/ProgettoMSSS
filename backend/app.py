@@ -9,6 +9,10 @@ app.config.from_object(Config)
 # 2. Initialize the database connection
 db.init_app(app)
 
+# ---> NEW: Register the API routes we just built! <---
+from routes import api
+app.register_blueprint(api)
+
 # 3. Import your models so the database actually creates the tables!
 with app.app_context():
     import models
