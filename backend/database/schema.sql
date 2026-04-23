@@ -1,3 +1,5 @@
+CREATE DATABASE IF NOT EXISTS HeartMusic_database;
+
 -- ==========================================
 -- 1. USER AUTHENTICATION & CORE
 -- ==========================================
