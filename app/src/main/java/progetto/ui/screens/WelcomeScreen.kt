@@ -1,4 +1,4 @@
-package com.example.progetto.ui.screens
+package progetto.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
@@ -18,8 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.progetto.R
 import com.example.progetto.ui.components.HeartButton
-import com.example.progetto.ui.theme.HeartMusicTheme
-import com.example.progetto.ui.theme.HeartPurple
+import ui.theme.ProgettoTheme
 
 @Composable
 fun WelcomeScreen(
@@ -61,10 +60,9 @@ fun WelcomeScreen(
             
             Text(
                 text = "The app that listen to emotion...",
-                fontSize = 22.sp, // Scritta più grande
-                fontWeight = FontWeight.Medium,
+                fontSize = 18.sp,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
         }
 
@@ -77,14 +75,13 @@ fun WelcomeScreen(
         ) {
             HeartButton(
                 text = "Sign up",
-                onClick = onNavigateToRegister,
-                containerColor = HeartPurple // Viola
+                onClick = onNavigateToRegister
             )
             
             HeartButton(
                 text = "Sign in",
                 onClick = onNavigateToLogin,
-                containerColor = HeartPurple // Viola
+                containerColor = MaterialTheme.colorScheme.secondary
             )
         }
     }
@@ -93,7 +90,7 @@ fun WelcomeScreen(
 @Preview(showBackground = true)
 @Composable
 fun WelcomeScreenPreview() {
-    HeartMusicTheme {
+    ProgettoTheme {
         WelcomeScreen()
     }
 }

@@ -1,4 +1,4 @@
-package com.example.progetto.ui.screens
+package progetto.ui.screens
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult

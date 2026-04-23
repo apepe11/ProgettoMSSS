@@ -1,4 +1,4 @@
-package com.example.progetto.ui.screens
+package ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -25,8 +25,7 @@ import com.example.progetto.ui.theme.HeartMusicTheme
 fun LoginScreen(
     onNavigateBack: () -> Unit = {},
     onLoginSuccess: () -> Unit = {},
-    onNavigateToForgotPassword: () -> Unit = {},
-    onNavigateToRegister: () -> Unit = {}
+    onNavigateToForgotPassword: () -> Unit = {}
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -84,34 +83,15 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // 5. Opzioni extra
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "Forgot your password?",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .clickable { onNavigateToForgotPassword() }
-            )
-            
-            Row {
-                Text(
-                    text = "Don't have an account? ",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "Sign up",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onNavigateToRegister() }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
+        // 5. Forgot Password
+        Text(
+            text = "Forgot your password?",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .padding(bottom = 16.dp)
+                .clickable { onNavigateToForgotPassword() }
+        )
     }
 }
 
