@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  # 1. THE DATABASE
+  db:
+    image: postgres:15
+    container_name: heartmusic_db
+    restart: always
+    # These match the variables Ale put in the .env file!
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: HeartMusic_database
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # MAGIC TRICK: This tells Docker to automatically run your schema.sql 
+      # the very first time the database boots up!
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+  # 2. THE FLASK BACKEND
+  web:
+    build: .
+    container_name: heartmusic_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
