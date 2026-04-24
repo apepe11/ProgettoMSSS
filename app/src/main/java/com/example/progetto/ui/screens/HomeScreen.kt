@@ -41,8 +41,7 @@ fun HomeScreen(
                         contentDescription = "Logo",
                         modifier = Modifier
                             .padding(start = 16.dp)
-                            .size(80.dp)
-                            .clip(CircleShape),
+                            .size(80.dp),
                         contentScale = ContentScale.Fit
                     )
                 },
