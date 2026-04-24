@@ -1,10 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<<<<<<< HEAD
-<bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@drawable/logo_foreground"
-    android:antialias="true"
-    android:gravity="fill" />
-=======
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
@@ -20,4 +14,3 @@
     </item>
 
 </layer-list>
->>>>>>> 166f5a5 (Finished the UI for all the screens of the application)
