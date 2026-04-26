@@ -25,8 +25,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.screens.*
 import com.example.progetto.ui.theme.HeartMusicTheme
+import com.example.progetto.ui.viewmodels.AuthViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -50,9 +52,22 @@ fun GlobalDrawerNavigation() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val username = "Username"
+    val authViewModel: AuthViewModel = viewModel()
+    
+    // Usiamo remember per reagire ai cambiamenti nel ViewModel
+    val currentUser = authViewModel.currentUser
+    val username = currentUser?.username ?: "Guest"
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+        // Se l'utente è già loggato all'avvio, mandalo alla Home direttamente
+        LaunchedEffect(authViewModel.currentUser) {
+            if (authViewModel.currentUser != null && navController.currentDestination?.route == "welcome") {
+                navController.navigate("home") {
+                    popUpTo("welcome") { inclusive = true }
+                }
+            }
+        }
+
         ModalNavigationDrawer(
             drawerState = drawerState,
             drawerContent = {
@@ -63,7 +78,9 @@ fun GlobalDrawerNavigation() {
                     ) {
                         Spacer(modifier = Modifier.height(24.dp))
                         Row(
-                            modifier = Modifier.fillMaxWidth().padding(16.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.End
                         ) {
@@ -71,6 +88,7 @@ fun GlobalDrawerNavigation() {
                                 text = username,
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
+                                color = Color.Black, // Forza il colore nero
                                 modifier = Modifier.padding(end = 12.dp)
                             )
                             Box(
@@ -112,7 +130,10 @@ fun GlobalDrawerNavigation() {
                             label = { Text("Logout", color = Color.Red) },
                             selected = false,
                             onClick = {
-                                scope.launch { drawerState.close() }
+                                scope.launch { 
+                                    drawerState.close() 
+                                    authViewModel.logout()
+                                }
                                 navController.navigate("welcome") {
                                     popUpTo(0) { inclusive = true }
                                 }
@@ -128,6 +149,7 @@ fun GlobalDrawerNavigation() {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                 AppNavigation(
                     navController = navController,
+                    authViewModel = authViewModel,
                     onOpenDrawer = { scope.launch { drawerState.open() } }
                 )
             }
@@ -138,6 +160,7 @@ fun GlobalDrawerNavigation() {
 @Composable
 fun AppNavigation(
     navController: androidx.navigation.NavHostController,
+    authViewModel: AuthViewModel,
     onOpenDrawer: () -> Unit
 ) {
     NavHost(navController = navController, startDestination = "welcome") {
@@ -152,13 +175,15 @@ fun AppNavigation(
                 onNavigateBack = { navController.popBackStack() },
                 onLoginSuccess = { navController.navigate("home") },
                 onNavigateToForgotPassword = { navController.navigate("forgot_password") },
-                onNavigateToRegister = { navController.navigate("register") }
+                onNavigateToRegister = { navController.navigate("register") },
+                viewModel = authViewModel
             )
         }
         composable("register") {
             RegisterScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onRegisterSuccess = { navController.navigate("registration_success") }
+                onRegisterSuccess = { navController.navigate("registration_success") },
+                viewModel = authViewModel
             )
         }
         composable("registration_success") {

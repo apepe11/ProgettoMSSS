@@ -18,10 +18,12 @@ fun HeartButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     containerColor: Color = HeartPurple
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
             .height(56.dp),

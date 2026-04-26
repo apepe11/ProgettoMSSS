@@ -20,16 +20,33 @@ import com.example.progetto.R
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.components.HeartTextField
 import com.example.progetto.ui.theme.HeartMusicTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.progetto.ui.viewmodels.AuthViewModel
+import com.example.progetto.ui.viewmodels.LoginUiState
+import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun LoginScreen(
     onNavigateBack: () -> Unit = {},
     onLoginSuccess: () -> Unit = {},
     onNavigateToForgotPassword: () -> Unit = {},
-    onNavigateToRegister: () -> Unit = {}
+    onNavigateToRegister: () -> Unit = {},
+    viewModel:AuthViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    val uiState = viewModel.uiState
+
+    LaunchedEffect(uiState) {
+        if (uiState is LoginUiState.Success) {
+            onLoginSuccess()
+            viewModel.resetState()
+        }
+    }
+
+
 
     Column(
         modifier = Modifier
@@ -76,10 +93,28 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
+        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message else null
+        
+        if (displayError != null) {
+            Text(
+                text = displayError,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+        }
+
         // 4. Bottone Sign In
         HeartButton(
-            text = "Sign in",
-            onClick = onLoginSuccess
+            text = if (uiState is LoginUiState.Loading) "Signing in..." else "Sign in",
+            onClick = {
+                if (email.isEmpty() || password.isEmpty()) {
+                    localError = "Inserire username e password"
+                } else {
+                    localError = null
+                    viewModel.login(email, password)
+                }
+            },
+            enabled = uiState !is LoginUiState.Loading // Disabilita il click durante il caricamento
         )
 
         Spacer(modifier = Modifier.weight(1f))

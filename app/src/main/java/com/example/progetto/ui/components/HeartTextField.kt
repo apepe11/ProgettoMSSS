@@ -3,8 +3,11 @@ package com.example.progetto.ui.components
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -20,6 +23,8 @@ fun HeartTextField(
     modifier: Modifier = Modifier,
     isPassword: Boolean = false
 ) {
+    var passwordVisible by remember { mutableStateOf(false) }
+
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -28,7 +33,20 @@ fun HeartTextField(
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
+        trailingIcon = {
+            if (isPassword) {
+                val image = if (passwordVisible)
+                    Icons.Filled.Visibility
+                else Icons.Filled.VisibilityOff
+
+                val description = if (passwordVisible) "Hide password" else "Show password"
+
+                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                    Icon(imageVector = image, contentDescription = description)
+                }
+            }
+        },
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
             unfocusedBorderColor = Color.LightGray,

@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import db
 from models import ListeningSession, SurveyResponse, Playlist, User, SurveyQuestion
@@ -6,10 +7,20 @@ from models import ListeningSession, SurveyResponse, Playlist, User, SurveyQuest
 # Create a 'Blueprint' to hold all our URLs
 api = Blueprint('api', __name__)
 
+def send_welcome_email(user_email, username):
+    from app import mail # Import circolare gestito dentro la funzione
+    msg = Message('Welcome to HeartMusic!',
+                  recipients=[user_email])
+    msg.body = f"Hi {username}! Thank you for registering to HeartMusic. Start listening to your heart!"
+    try:
+        mail.send(msg)
+    except Exception as e:
+        print(f"Error sending email: {e}")
+
 # ==========================================
 # 0. USER AUTHENTICATION
 # ==========================================
-@api.route('/api/users/register', methods=['POST'])
+@api.route('/api/users/register', methods=['POST'], strict_slashes=False)
 def register_user():
     data = request.get_json()
     
@@ -29,15 +40,19 @@ def register_user():
     
     db.session.add(new_user)
     db.session.commit()
-    
+
+    # Invia la mail di benvenuto
+    send_welcome_email(new_user.email, new_user.username)
+
     return jsonify({"message": "User created successfully!", "user_id": new_user.user_id}), 201
 
-@api.route('/api/users/login', methods=['POST'])
+@api.route('/api/users/login', methods=['POST'], strict_slashes=False)
 def login_user():
     data = request.get_json()
-    
-    # Find the user by their email
-    user = User.query.filter_by(email=data.get('email')).first()
+    identifier = data.get('email') # Può essere email o username
+
+    # Cerca l'utente sia per email che per username
+    user = User.query.filter((User.email == identifier) | (User.username == identifier)).first()
     
     # If the user exists AND the encrypted passwords match
     if user and check_password_hash(user.password_hash, data.get('password')):
