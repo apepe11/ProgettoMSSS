@@ -75,3 +75,42 @@ CREATE TABLE survey_responses (
     answer_data JSONB NOT NULL,
     submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ==========================================
+-- 5. RAW TRAINING DATA (EEG / HR / EDA)
+-- ==========================================
+
+CREATE TABLE eeg_training_samples (
+    sample_id BIGSERIAL PRIMARY KEY,
+    session_id UUID REFERENCES listening_sessions (session_id) ON DELETE CASCADE,
+    sample INT NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    rating INT NOT NULL,
+    ch1 DOUBLE PRECISION NOT NULL,
+    ch2 DOUBLE PRECISION NOT NULL,
+    ch3 DOUBLE PRECISION NOT NULL,
+    ch4 DOUBLE PRECISION NOT NULL,
+    ch5 DOUBLE PRECISION NOT NULL,
+    ch6 DOUBLE PRECISION NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_eeg_training_samples_session_sample
+    ON eeg_training_samples (session_id, sample);
+
+CREATE TABLE wearable_training_samples (
+    sample_id BIGSERIAL PRIMARY KEY,
+    session_id UUID REFERENCES listening_sessions (session_id) ON DELETE CASCADE,
+    sensor_type VARCHAR(10) NOT NULL,
+    timestamp BIGINT NOT NULL,
+    value DOUBLE PRECISION NOT NULL,
+    subject VARCHAR(255) NOT NULL,
+    rating INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_wearable_training_samples_session_ts
+    ON wearable_training_samples (session_id, timestamp);
+
+CREATE INDEX idx_wearable_training_samples_type
+    ON wearable_training_samples (sensor_type);

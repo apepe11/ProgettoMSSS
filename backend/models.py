@@ -86,3 +86,37 @@ class SurveyResponse(db.Model):
     answer_data = db.Column(JSONB, nullable=False) 
     
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+# ==========================================
+# 5. RAW TRAINING DATA (EEG / HR / EDA)
+# ==========================================
+
+class EEGTrainingSample(db.Model):
+    __tablename__ = 'eeg_training_samples'
+
+    sample_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    session_id = db.Column(UUID(as_uuid=True), db.ForeignKey('listening_sessions.session_id', ondelete='CASCADE'), nullable=False)
+    sample = db.Column(db.Integer, nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    ch1 = db.Column(db.Float, nullable=False)
+    ch2 = db.Column(db.Float, nullable=False)
+    ch3 = db.Column(db.Float, nullable=False)
+    ch4 = db.Column(db.Float, nullable=False)
+    ch5 = db.Column(db.Float, nullable=False)
+    ch6 = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class WearableTrainingSample(db.Model):
+    __tablename__ = 'wearable_training_samples'
+
+    sample_id = db.Column(db.BigInteger, primary_key=True, autoincrement=True)
+    session_id = db.Column(UUID(as_uuid=True), db.ForeignKey('listening_sessions.session_id', ondelete='CASCADE'), nullable=False)
+    sensor_type = db.Column(db.String(10), nullable=False)  # "hr" | "eda"
+    timestamp = db.Column(db.BigInteger, nullable=False)
+    value = db.Column(db.Float, nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

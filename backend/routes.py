@@ -1,8 +1,18 @@
 from flask import Blueprint, request, jsonify
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
+from pathlib import Path
+import csv
 from database import db
-from models import ListeningSession, SurveyResponse, Playlist, User, SurveyQuestion
+from models import (
+    ListeningSession,
+    SurveyResponse,
+    Playlist,
+    User,
+    SurveyQuestion,
+    EEGTrainingSample,
+    WearableTrainingSample,
+)
 
 # Create a 'Blueprint' to hold all our URLs
 api = Blueprint('api', __name__)
@@ -81,7 +91,10 @@ def save_watch_data():
     db.session.add(new_session)
     db.session.commit()
     
-    return jsonify({"message": "Smartwatch data saved successfully!"}), 201
+    return jsonify({
+        "message": "Smartwatch data saved successfully!",
+        "session_id": str(new_session.session_id)
+    }), 201
 
 # ==========================================
 # 2. SURVEYS: GET QUESTIONS & SAVE ANSWERS
@@ -161,3 +174,245 @@ def get_user_history(user_id):
         })
         
     return jsonify({"history": session_list}), 200
+
+
+# ==========================================
+# 5. TRAINING DATA INGESTION & EXPORT
+# ==========================================
+
+def _normalize_rating(raw_rating):
+    try:
+        rating = int(raw_rating)
+    except (TypeError, ValueError):
+        return None
+
+    if 0 <= rating <= 4:
+        return rating
+    if 1 <= rating <= 5:
+        return rating - 1
+    return None
+
+
+@api.route('/api/training/sessions', methods=['POST'])
+def create_training_session():
+    data = request.get_json() or {}
+
+    new_session = ListeningSession(
+        user_id=data.get('user_id'),
+        song_id=data.get('song_id'),
+        avg_bpm=data.get('avg_bpm'),
+        avg_eda=data.get('avg_eda')
+    )
+    db.session.add(new_session)
+    db.session.commit()
+
+    return jsonify({
+        "message": "Training session created.",
+        "session_id": str(new_session.session_id)
+    }), 201
+
+
+@api.route('/api/training/eeg', methods=['POST'])
+def save_training_eeg_samples():
+    data = request.get_json() or {}
+
+    session_id = data.get('session_id')
+    subject = (data.get('subject') or '').strip()
+    rating = _normalize_rating(data.get('rating'))
+    samples = data.get('samples')
+
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+    if not subject:
+        return jsonify({"error": "subject is required"}), 400
+    if rating is None:
+        return jsonify({"error": "rating must be in [0..4] or [1..5]"}), 400
+    if not isinstance(samples, list) or len(samples) == 0:
+        return jsonify({"error": "samples must be a non-empty list"}), 400
+
+    session = ListeningSession.query.filter_by(session_id=session_id).first()
+    if not session:
+        return jsonify({"error": "session_id not found"}), 404
+
+    rows = []
+    for i, sample in enumerate(samples):
+        try:
+            row = EEGTrainingSample(
+                session_id=session.session_id,
+                sample=int(sample['sample']),
+                subject=subject,
+                rating=rating,
+                ch1=float(sample['ch1']),
+                ch2=float(sample['ch2']),
+                ch3=float(sample['ch3']),
+                ch4=float(sample['ch4']),
+                ch5=float(sample['ch5']),
+                ch6=float(sample['ch6']),
+            )
+            rows.append(row)
+        except (TypeError, ValueError, KeyError):
+            return jsonify({"error": f"Invalid EEG sample at index {i}"}), 400
+
+    db.session.bulk_save_objects(rows)
+    db.session.commit()
+
+    return jsonify({
+        "message": "EEG samples saved.",
+        "session_id": str(session.session_id),
+        "inserted": len(rows)
+    }), 201
+
+
+@api.route('/api/training/wearable', methods=['POST'])
+def save_training_wearable_samples():
+    data = request.get_json() or {}
+
+    session_id = data.get('session_id')
+    sensor_type = (data.get('sensor_type') or '').strip().lower()
+    subject = (data.get('subject') or '').strip()
+    rating = _normalize_rating(data.get('rating'))
+    samples = data.get('samples')
+
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+    if sensor_type not in {'hr', 'eda'}:
+        return jsonify({"error": "sensor_type must be 'hr' or 'eda'"}), 400
+    if not subject:
+        return jsonify({"error": "subject is required"}), 400
+    if rating is None:
+        return jsonify({"error": "rating must be in [0..4] or [1..5]"}), 400
+    if not isinstance(samples, list) or len(samples) == 0:
+        return jsonify({"error": "samples must be a non-empty list"}), 400
+
+    session = ListeningSession.query.filter_by(session_id=session_id).first()
+    if not session:
+        return jsonify({"error": "session_id not found"}), 404
+
+    rows = []
+    for i, sample in enumerate(samples):
+        try:
+            row = WearableTrainingSample(
+                session_id=session.session_id,
+                sensor_type=sensor_type,
+                timestamp=int(sample['timestamp']),
+                value=float(sample['value']),
+                subject=subject,
+                rating=rating,
+            )
+            rows.append(row)
+        except (TypeError, ValueError, KeyError):
+            return jsonify({"error": f"Invalid wearable sample at index {i}"}), 400
+
+    db.session.bulk_save_objects(rows)
+    db.session.commit()
+
+    return jsonify({
+        "message": f"{sensor_type.upper()} samples saved.",
+        "session_id": str(session.session_id),
+        "inserted": len(rows)
+    }), 201
+
+
+@api.route('/api/training/export', methods=['POST'])
+def export_training_data_for_classifier():
+    """
+    Export DB data into the CSV schema expected by emotion_classifier/train_emotion_classifier.py
+    """
+    payload = request.get_json(silent=True) or {}
+
+    default_out_dir = Path(__file__).resolve().parent / 'training_exports' / 'raw'
+    out_dir = Path(payload.get('out_dir', str(default_out_dir))).expanduser().resolve()
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    eeg_path = out_dir / 'eeg_data.csv'
+    hr_path = out_dir / 'hr_data.csv'
+    eda_path = out_dir / 'eda_data.csv'
+
+    # Build stable integer experiment IDs from sessions that contain training data
+    session_ids = set(
+        r.session_id for r in EEGTrainingSample.query.with_entities(EEGTrainingSample.session_id).all()
+    ) | set(
+        r.session_id for r in WearableTrainingSample.query.with_entities(WearableTrainingSample.session_id).all()
+    )
+
+    if not session_ids:
+        return jsonify({"error": "No training data available to export"}), 400
+
+    ordered_sessions = (
+        ListeningSession.query
+        .filter(ListeningSession.session_id.in_(session_ids))
+        .order_by(ListeningSession.start_time.asc())
+        .all()
+    )
+    exp_map = {s.session_id: i + 1 for i, s in enumerate(ordered_sessions)}
+
+    eeg_rows = (
+        EEGTrainingSample.query
+        .order_by(EEGTrainingSample.session_id.asc(), EEGTrainingSample.sample.asc())
+        .all()
+    )
+    hr_rows = (
+        WearableTrainingSample.query
+        .filter_by(sensor_type='hr')
+        .order_by(WearableTrainingSample.session_id.asc(), WearableTrainingSample.timestamp.asc())
+        .all()
+    )
+    eda_rows = (
+        WearableTrainingSample.query
+        .filter_by(sensor_type='eda')
+        .order_by(WearableTrainingSample.session_id.asc(), WearableTrainingSample.timestamp.asc())
+        .all()
+    )
+
+    with eeg_path.open('w', newline='', encoding='utf-8') as f:
+        w = csv.writer(f)
+        w.writerow(['experiment', 'sample', 'subject', 'rating', 'ch1', 'ch2', 'ch3', 'ch4', 'ch5', 'ch6'])
+        for r in eeg_rows:
+            if r.session_id not in exp_map:
+                continue
+            w.writerow([
+                exp_map[r.session_id],
+                r.sample,
+                r.subject,
+                r.rating,
+                r.ch1,
+                r.ch2,
+                r.ch3,
+                r.ch4,
+                r.ch5,
+                r.ch6,
+            ])
+
+    def _write_wearable_csv(path: Path, rows):
+        with path.open('w', newline='', encoding='utf-8') as f:
+            w = csv.writer(f)
+            w.writerow(['experiment', 'timestamp', 'value', 'subject', 'rating'])
+            for r in rows:
+                if r.session_id not in exp_map:
+                    continue
+                w.writerow([
+                    exp_map[r.session_id],
+                    r.timestamp,
+                    r.value,
+                    r.subject,
+                    r.rating,
+                ])
+
+    _write_wearable_csv(hr_path, hr_rows)
+    _write_wearable_csv(eda_path, eda_rows)
+
+    return jsonify({
+        "message": "Training CSV export completed.",
+        "out_dir": str(out_dir),
+        "files": {
+            "eeg_csv": str(eeg_path),
+            "hr_csv": str(hr_path),
+            "eda_csv": str(eda_path),
+        },
+        "counts": {
+            "eeg_rows": len(eeg_rows),
+            "hr_rows": len(hr_rows),
+            "eda_rows": len(eda_rows),
+            "experiments": len(exp_map),
+        }
+    }), 200
