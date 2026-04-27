@@ -5,6 +5,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable // 1. ADDED THIS IMPORT
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -24,12 +25,12 @@ fun RegisterScreen(
     onRegisterSuccess: () -> Unit = {},
     viewModel: AuthViewModel = viewModel()
 ) {
-    // State variables match the database exactly
-    var username by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var localError by remember { mutableStateOf<String?>(null) }
+    // 2. CHANGED 'remember' TO 'rememberSaveable'
+    var username by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var confirmPassword by rememberSaveable { mutableStateOf("") }
+    var localError by rememberSaveable { mutableStateOf<String?>(null) }
 
     val uiState = viewModel.uiState
 
@@ -66,7 +67,7 @@ fun RegisterScreen(
         HeartTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = "Confirm Password", isPassword = true)
 
         val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message else null
-        
+
         if (displayError != null) {
             Text(
                 text = displayError,
