@@ -1,16 +1,11 @@
 package com.example.progetto.ui.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -22,48 +17,35 @@ import com.example.progetto.ui.theme.HeartMusicTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewEmotionScreen(
-    onOpenDrawer: () -> Unit = {},
+    onOpenDrawer: () -> Unit = {}, // You can actually delete this parameter later if this screen doesn't use it directly anymore!
     onNavigateBack: () -> Unit = {},
     onSaveFeeling: () -> Unit = {}
 ) {
-    var feelingValue by remember { mutableFloatStateOf(0.5f) }
+    // 1. Dropdown State Variables
+    val emotionsList = listOf("Happy", "Sad", "Anxious", "Calm", "Energetic")
+    var expanded by remember { mutableStateOf(false) }
+    var selectedEmotion by remember { mutableStateOf("") }
+
+    // Other State Variables
     var strengthValue by remember { mutableFloatStateOf(0.5f) }
     var description by remember { mutableStateOf("") }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        "Answer the question",
-                        fontSize = 20.sp,
-                        color = Color.Black
+    // OUTER COLUMN: Holds everything. Notice the Scaffold is completely gone!
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp) // We removed paddingValues because the MainActivity handles the top spacing now
+    ) {
 
-                    ) 
-                },
-                actions = {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 18.dp)
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                            .clickable { onOpenDrawer() }
-                    )
-                }
-            )
-        }
-    ) { paddingValues ->
+        // INNER COLUMN: Takes up all empty space (weight 1f) and centers the form
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(24.dp),
+                .weight(1f)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Domanda 1
+            // Domanda 1: The Dropdown Menu
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "How do you feel?",
@@ -71,20 +53,49 @@ fun ReviewEmotionScreen(
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
-                Slider(
-                    value = feelingValue,
-                    onValueChange = { feelingValue = it },
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = Color.LightGray
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = selectedEmotion,
+                        onValueChange = {}, // Left empty because it's read-only
+                        readOnly = true,
+                        placeholder = { Text("Select an emotion") },
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(), // Connects the menu to this text field
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Gray,
+                            unfocusedBorderColor = Color.LightGray
+                        )
                     )
-                )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        emotionsList.forEach { selectionOption ->
+                            DropdownMenuItem(
+                                text = { Text(selectionOption) },
+                                onClick = {
+                                    selectedEmotion = selectionOption
+                                    expanded = false // Close menu after selecting
+                                }
+                            )
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Domanda 2
+            // Domanda 2: Strength Slider
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
                     text = "How strong is your emotion?",
@@ -105,7 +116,7 @@ fun ReviewEmotionScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Domanda 3 - Descrizione
+            // Domanda 3: Descrizione
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
@@ -119,28 +130,26 @@ fun ReviewEmotionScreen(
                     unfocusedBorderColor = Color.LightGray
                 )
             )
+        } // End of inner centered column
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Bottoni finali
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                HeartButton(
-                    text = "Go back",
-                    onClick = onNavigateBack,
-                    modifier = Modifier.weight(1f),
-                    containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
-                )
-                HeartButton(
-                    text = "Save feeling",
-                    onClick = onSaveFeeling,
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
+        // Bottoni finali: Pushed all the way to the bottom!
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            HeartButton(
+                text = "Go back",
+                onClick = onNavigateBack,
+                modifier = Modifier.weight(1f),
+                containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+            )
+            HeartButton(
+                text = "Save feeling",
+                onClick = onSaveFeeling,
+                modifier = Modifier.weight(1f)
+            )
         }
     }
 }

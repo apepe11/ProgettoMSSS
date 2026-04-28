@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -47,13 +48,18 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalDrawerNavigation() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val authViewModel: AuthViewModel = viewModel()
-    
+
+    // Track current route to know when to show the top menu
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
     // Usiamo remember per reagire ai cambiamenti nel ViewModel
     val currentUser = authViewModel.currentUser
     val username = currentUser?.username ?: "Guest"
@@ -82,25 +88,20 @@ fun GlobalDrawerNavigation() {
                                 .fillMaxWidth()
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.End
+                            // CHANGED: This moves the text to the left side!
+                            horizontalArrangement = Arrangement.Start
                         ) {
                             Text(
                                 text = username,
-                                fontSize = 20.sp,
+                                fontSize = 24.sp, // Made it slightly larger so it looks like a nice header!
                                 fontWeight = FontWeight.Bold,
-                                color = Color.Black, // Forza il colore nero
-                                modifier = Modifier.padding(end = 12.dp)
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(45.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
+                                // CHANGED: This makes it your theme's primary color (Purple)
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         val menuItems = listOf(
                             Triple("Emotion analysis", Icons.Default.Analytics, "emotion_analysis"),
                             Triple("Listening Mode", Icons.Default.Headset, "listening_mode"),
@@ -124,14 +125,14 @@ fun GlobalDrawerNavigation() {
                                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                             )
                         }
-                        
+
                         Spacer(modifier = Modifier.weight(1f))
                         NavigationDrawerItem(
                             label = { Text("Logout", color = Color.Red) },
                             selected = false,
                             onClick = {
-                                scope.launch { 
-                                    drawerState.close() 
+                                scope.launch {
+                                    drawerState.close()
                                     authViewModel.logout()
                                 }
                                 navController.navigate("welcome") {
@@ -147,11 +148,38 @@ fun GlobalDrawerNavigation() {
             }
         ) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                AppNavigation(
-                    navController = navController,
-                    authViewModel = authViewModel,
-                    onOpenDrawer = { scope.launch { drawerState.open() } }
-                )
+                // The Global Scaffold
+                Scaffold(
+                    topBar = {
+                        // Do not show the top bar on login/welcome screens
+                        val hideTopBarRoutes = listOf("welcome", "login", "register", "registration_success", "forgot_password", "player")
+                        if (currentRoute !in hideTopBarRoutes) {
+                            TopAppBar(
+                                title = { Text("HeartMusic", fontSize = 20.sp, color = Color.Black) },
+                                actions = {
+                                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "Menu",
+                                            tint = Color.Black
+                                        )
+                                    }
+                                },
+                                colors = TopAppBarDefaults.topAppBarColors(
+                                    containerColor = Color.Transparent
+                                )
+                            )
+                        }
+                    }
+                ) { paddingValues ->
+                    Box(modifier = Modifier.padding(paddingValues)) {
+                        AppNavigation(
+                            navController = navController,
+                            authViewModel = authViewModel,
+                            onOpenDrawer = { scope.launch { drawerState.open() } }
+                        )
+                    }
+                }
             }
         }
     }
@@ -188,7 +216,7 @@ fun AppNavigation(
         }
         composable("registration_success") {
             RegistrationSuccessScreen(
-                onNavigateToLogin = { 
+                onNavigateToLogin = {
                     navController.navigate("login") {
                         popUpTo("welcome") { inclusive = false }
                     }
@@ -210,8 +238,8 @@ fun AppNavigation(
         composable("listening_mode") {
             ListeningModeScreen(
                 onOpenDrawer = onOpenDrawer,
-                onNavigateToPlaylist = { playlistName -> 
-                    navController.navigate("playlist_detail/$playlistName") 
+                onNavigateToPlaylist = { playlistName ->
+                    navController.navigate("playlist_detail/$playlistName")
                 },
                 onNavigateToPlayer = { navController.navigate("player") },
                 onNavigateBack = { navController.popBackStack() }

@@ -5,16 +5,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -22,74 +17,48 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.progetto.ui.theme.HeartMusicTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlaylistDetailScreen(
     playlistName: String,
-    onOpenDrawer: () -> Unit = {},
+    onOpenDrawer: () -> Unit = {}, // Can be removed later if unused
     onNavigateToPlayer: () -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     val songs = listOf("SONG 1", "SONG 2", "SONG 3", "SONG 4", "SONG 5")
 
-    Scaffold(
-        topBar = {
-            Column {
-                TopAppBar(
-                    title = { 
-                        Text(
-                            playlistName, 
-                            fontSize = 20.sp,
-                            color = Color.Black
-                        ) 
-                    },
-                    actions = {
-                        Box(
-                            modifier = Modifier
-                                .padding(end = 18.dp)
-                                .size(32.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary)
-                                .clickable { onOpenDrawer() }
-                        )
-                    }
-                )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search for Playlist, Emotion, Song", fontSize = 12.sp) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(25.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color.LightGray,
-                            unfocusedBorderColor = Color.LightGray
-                        ),
-                        singleLine = true
-                    )
-                }
-            }
-        },
-        bottomBar = { 
-            MiniPlayer(onClick = onNavigateToPlayer)
-        }
-    ) { paddingValues ->
+    // Removed the Scaffold entirely!
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 1. Search Bar at the top
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Search for Playlist, Emotion, Song", fontSize = 12.sp) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .height(50.dp),
+            shape = RoundedCornerShape(25.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color.LightGray,
+                unfocusedBorderColor = Color.LightGray
+            ),
+            singleLine = true
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // 2. Middle Content (Takes up all remaining space with weight(1f))
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+                .weight(1f)
+                .fillMaxWidth()
                 .padding(horizontal = 24.dp)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            
             // Header Playlist
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -134,6 +103,10 @@ fun PlaylistDetailScreen(
                 }
             }
         }
+
+        // 3. MiniPlayer pinned to the bottom
+        // (Note: This automatically uses the MiniPlayer function you defined in ListeningModeScreen.kt!)
+        MiniPlayer(onClick = onNavigateToPlayer)
     }
 }
 
@@ -141,6 +114,6 @@ fun PlaylistDetailScreen(
 @Composable
 fun PlaylistDetailScreenPreview() {
     HeartMusicTheme {
-        PlaylistDetailScreen(playlistName = "Playlist1")
+        PlaylistDetailScreen(playlistName = "My Awesome Playlist")
     }
 }

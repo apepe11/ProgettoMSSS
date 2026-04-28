@@ -3,17 +3,14 @@ package com.example.progetto.ui.screens
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -24,65 +21,51 @@ import androidx.compose.ui.unit.sp
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.theme.HeartMusicTheme
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InsightsScreen(
-    onOpenDrawer: () -> Unit = {}
+    onOpenDrawer: () -> Unit = {} // You can keep this parameter so your navigation doesn't break!
 ) {
     var showStatistics by remember { mutableStateOf(true) }
     var searchQuery by remember { mutableStateOf("") }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { 
-                    Text(
-                        "Your Insights",
-                        fontSize = 20.sp,
-                        color = Color.Black
-                    ) 
-                },
-                actions = {
-                    Box(
-                        modifier = Modifier
-                            .padding(end = 18.dp)
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
-                            .clickable { onOpenDrawer() }
-                    )
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
+    // Removed the Scaffold entirely!
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp), // Using standard padding instead of paddingValues
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Added a local title to replace the one we deleted from the TopAppBar
+        Text(
+            text = "Your Insights",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            if (showStatistics) {
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center
-                ) {
-                    StatisticalAnalysisContent()
-                }
-            } else {
-                FavouriteSongsContent(
-                    searchQuery = searchQuery,
-                    onSearchChange = { searchQuery = it }
-                )
-                Spacer(modifier = Modifier.weight(1f))
-            }
+                .align(Alignment.Start)
+                .padding(bottom = 24.dp)
+        )
 
-            HeartButton(
-                text = if (showStatistics) "Favourite Songs" else "Statistical Analysis",
-                onClick = { showStatistics = !showStatistics },
-                modifier = Modifier.padding(bottom = 24.dp)
+        if (showStatistics) {
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                StatisticalAnalysisContent()
+            }
+        } else {
+            FavouriteSongsContent(
+                searchQuery = searchQuery,
+                onSearchChange = { searchQuery = it }
             )
+            Spacer(modifier = Modifier.weight(1f))
         }
+
+        HeartButton(
+            text = if (showStatistics) "Favourite Songs" else "Statistical Analysis",
+            onClick = { showStatistics = !showStatistics },
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
     }
 }
 
@@ -92,7 +75,7 @@ fun StatisticalAnalysisContent() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        
+
         // Grafico a ciambella (Donut Chart) stilizzato come nel bozzetto
         Box(
             modifier = Modifier.size(200.dp),
@@ -151,7 +134,7 @@ fun LegendItem(color: Color, label: String) {
 @Composable
 fun FavouriteSongsContent(searchQuery: String, onSearchChange: (String) -> Unit) {
     val songs = listOf("SONG 1", "SONG 2", "SONG 3", "SONG 4", "SONG 5", "SONG 6", "SONG 7")
-    
+
     Column {
         OutlinedTextField(
             value = searchQuery,
@@ -168,9 +151,9 @@ fun FavouriteSongsContent(searchQuery: String, onSearchChange: (String) -> Unit)
             ),
             singleLine = true
         )
-        
+
         Spacer(modifier = Modifier.height(24.dp))
-        
+
         Text(
             text = "Top 10 songs",
             fontSize = 18.sp,
