@@ -17,3 +17,4 @@ diario.txt
 
 # Ignore generated/temporary module docs
 /emotion_classifier/README.md
+SENSOR_READING_GUIDE.md

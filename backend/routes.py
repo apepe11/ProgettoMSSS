@@ -177,6 +177,112 @@ def get_user_history(user_id):
 
 
 # ==========================================
+# 4. REAL-TIME SENSOR DATA (LIVE COLLECTION)
+# ==========================================
+
+@api.route('/api/sensors/hr', methods=['POST'])
+def collect_heart_rate():
+    """Receive heart rate data during live listening session"""
+    data = request.get_json() or {}
+    
+    session_id = data.get('session_id')
+    timestamp = data.get('timestamp', int(__import__('time').time() * 1000))
+    value = data.get('value')
+    
+    if not session_id or value is None:
+        return jsonify({"error": "session_id and value required"}), 400
+    
+    try:
+        wearable = WearableTrainingSample(
+            session_id=session_id,
+            sensor_type='hr',
+            timestamp=timestamp,
+            value=float(value),
+            subject='user',
+            rating=0  # Will be updated later during survey
+        )
+        db.session.add(wearable)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "Heart rate data received",
+            "sample_id": wearable.sample_id
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+@api.route('/api/sensors/eda', methods=['POST'])
+def collect_eda():
+    """Receive EDA data during live listening session"""
+    data = request.get_json() or {}
+    
+    session_id = data.get('session_id')
+    timestamp = data.get('timestamp', int(__import__('time').time() * 1000))
+    value = data.get('value')
+    
+    if not session_id or value is None:
+        return jsonify({"error": "session_id and value required"}), 400
+    
+    try:
+        wearable = WearableTrainingSample(
+            session_id=session_id,
+            sensor_type='eda',
+            timestamp=timestamp,
+            value=float(value),
+            subject='user',
+            rating=0
+        )
+        db.session.add(wearable)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "EDA data received",
+            "sample_id": wearable.sample_id
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+@api.route('/api/sensors/eeg', methods=['POST'])
+def collect_eeg():
+    """Receive EEG data during live listening session"""
+    data = request.get_json() or {}
+    
+    session_id = data.get('session_id')
+    sample_num = data.get('sample')
+    
+    if not session_id or sample_num is None:
+        return jsonify({"error": "session_id and sample required"}), 400
+    
+    try:
+        eeg = EEGTrainingSample(
+            session_id=session_id,
+            sample=sample_num,
+            subject='user',
+            rating=0,
+            ch1=float(data.get('ch1', 0)),
+            ch2=float(data.get('ch2', 0)),
+            ch3=float(data.get('ch3', 0)),
+            ch4=float(data.get('ch4', 0)),
+            ch5=float(data.get('ch5', 0)),
+            ch6=float(data.get('ch6', 0))
+        )
+        db.session.add(eeg)
+        db.session.commit()
+        
+        return jsonify({
+            "message": "EEG data received",
+            "sample_id": eeg.sample_id
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+
+# ==========================================
 # 5. TRAINING DATA INGESTION & EXPORT
 # ==========================================
 
