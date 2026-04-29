@@ -15,8 +15,13 @@ CREATE TABLE users (
 
 CREATE TABLE songs (
     song_id UUID PRIMARY KEY,
+    allmusic_id VARCHAR(255),  -- Added
     title VARCHAR(255) NOT NULL,
     artist VARCHAR(255) NOT NULL,
+    quadrant VARCHAR(50),      -- Added
+    qquad VARCHAR(50),         -- Added
+    genres VARCHAR(255),       -- Added
+    moods VARCHAR(255),        -- Added
     duration_sec INT,
     file_url VARCHAR(255) NOT NULL
 );
