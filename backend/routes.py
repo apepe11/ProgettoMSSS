@@ -138,28 +138,30 @@ def save_survey():
 # ==========================================
 # 3. PLAYLISTS
 # ==========================================
+
 @api.route('/api/playlists/<int:emotion_id>', methods=['GET'])
 def get_playlist_by_emotion(emotion_id):
     playlist = Playlist.query.filter_by(target_emotion_id=emotion_id).first()
-    
+
     if not playlist:
         return jsonify({"error": "No playlist found for this emotion"}), 404
-        
+
     song_list = []
     for song in playlist.songs:
         song_list.append({
+            "song_id": str(song.song_id),
             "title": song.title,
             "artist": song.artist,
             "url": song.file_url
         })
-        
+
     return jsonify({
         "playlist_title": playlist.title,
         "songs": song_list
     }), 200
 
-@api.route('/api/playlists/search', methods=['GET'])
-def search_playlists():
+@api.route('/api/playlists', methods=['GET'])
+def get_playlists():
     query = request.args.get('q', '')
 
     if not query:
@@ -183,6 +185,30 @@ def search_playlists():
         })
 
     return jsonify({"playlists": results}), 200
+
+@api.route('/api/playlists/<uuid:playlist_id>', methods=['GET'])
+def get_playlist_details(playlist_id):
+    playlist = Playlist.query.get(playlist_id)
+
+    if not playlist:
+        return jsonify({"error": "Playlist not found"}), 404
+
+    song_list = []
+    for song in playlist.songs:
+        song_list.append({
+            "song_id": str(song.song_id),
+            "title": song.title,
+            "artist": song.artist,
+            "url": song.file_url,
+            "duration": song.duration_sec
+        })
+
+    return jsonify({
+        "playlist_id": str(playlist.playlist_id),
+        "title": playlist.title,
+        "emotion": playlist.emotion.name if playlist.emotion else "General",
+        "songs": song_list
+    }), 200
 
 # ==========================================
 # 4. GET USER HISTORY

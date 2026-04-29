@@ -238,21 +238,20 @@ fun AppNavigation(
         composable("listening_mode") {
             ListeningModeScreen(
                 onOpenDrawer = onOpenDrawer,
-                onNavigateToPlaylist = { playlistName ->
-                    navController.navigate("playlist_detail/$playlistName")
+                onNavigateToPlaylist = { playlistId ->
+                    navController.navigate("playlist_detail/$playlistId")
                 },
                 onNavigateToPlayer = { navController.navigate("player") },
                 onNavigateBack = { navController.popBackStack() }
             )
         }
         composable(
-            route = "playlist_detail/{playlistName}",
-            arguments = listOf(navArgument("playlistName") { type = NavType.StringType })
+            route = "playlist_detail/{playlistId}",
+            arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val playlistName = backStackEntry.arguments?.getString("playlistName") ?: ""
+            val playlistId = backStackEntry.arguments?.getString("playlistId") ?: ""
             PlaylistDetailScreen(
-                playlistName = playlistName,
-                onOpenDrawer = onOpenDrawer,
+                playlistId = playlistId,
                 onNavigateToPlayer = { navController.navigate("player") },
                 onNavigateBack = { navController.popBackStack() }
             )

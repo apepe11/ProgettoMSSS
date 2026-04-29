@@ -86,7 +86,7 @@ fun ListeningModeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onNavigateToPlaylist(playlist.title) },
+                            .clickable { onNavigateToPlaylist(playlist.playlistId) },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(

@@ -48,7 +48,7 @@ class ListeningViewModel : ViewModel() {
             _isLoading.value = true
             try {
                 // Ora usiamo il servizio specifico per le playlist
-                val response = RetrofitClient.playlistApiService.searchPlaylists(query)
+                val response = RetrofitClient.playlistApiService.getPlaylists(query)
                 if (response.isSuccessful) {
                     _playlists.value = response.body()?.playlists ?: emptyList()
                 } else {

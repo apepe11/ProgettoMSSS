@@ -1,10 +1,10 @@
-CREATE DATABASE IF NOT EXISTS HeartMusic_database;
+-- CREATE DATABASE IF NOT EXISTS HeartMusic_database;
 
 -- ==========================================
 -- 1. USER AUTHENTICATION & CORE
 -- ==========================================
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id UUID PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -13,8 +13,7 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE songs (
-
+CREATE TABLE IF NOT EXISTS songs (
     song_id UUID PRIMARY KEY,
     allmusic_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
@@ -23,7 +22,7 @@ CREATE TABLE songs (
     file_url VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE emotions (
+CREATE TABLE IF NOT EXISTS emotions (
     emotion_id INT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE
 );
@@ -32,13 +31,13 @@ CREATE TABLE emotions (
 -- 2. PLAYLISTS & CURATION
 -- ==========================================
 
-CREATE TABLE playlists (
+CREATE TABLE IF NOT EXISTS playlists (
     playlist_id UUID PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     target_emotion_id INT REFERENCES emotions (emotion_id) ON DELETE SET NULL
 );
 
-CREATE TABLE playlist_songs (
+CREATE TABLE IF NOT EXISTS playlist_songs (
     playlist_id UUID REFERENCES playlists (playlist_id) ON DELETE CASCADE,
     song_id UUID REFERENCES songs (song_id) ON DELETE CASCADE,
     PRIMARY KEY (playlist_id, song_id)
@@ -48,7 +47,7 @@ CREATE TABLE playlist_songs (
 -- 3. SENSORS & ALGORITHM ANALYSIS
 -- ==========================================
 
-CREATE TABLE listening_sessions (
+CREATE TABLE IF NOT EXISTS listening_sessions (
     session_id UUID PRIMARY KEY,
     user_id UUID REFERENCES users (user_id) ON DELETE CASCADE,
     song_id UUID REFERENCES songs (song_id) ON DELETE CASCADE,
@@ -63,13 +62,13 @@ CREATE TABLE listening_sessions (
 -- 4. THE FLEXIBLE GROUND TRUTH
 -- ==========================================
 
-CREATE TABLE survey_questions (
+CREATE TABLE IF NOT EXISTS survey_questions (
     question_id INT PRIMARY KEY,
     question_text VARCHAR(255) NOT NULL,
     question_type VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE survey_responses (
+CREATE TABLE IF NOT EXISTS survey_responses (
     response_id UUID PRIMARY KEY,
     session_id UUID REFERENCES listening_sessions (session_id) ON DELETE CASCADE,
     user_id UUID REFERENCES users (user_id) ON DELETE CASCADE,
@@ -82,7 +81,7 @@ CREATE TABLE survey_responses (
 -- 5. RAW TRAINING DATA (EEG / HR / EDA)
 -- ==========================================
 
-CREATE TABLE eeg_training_samples (
+CREATE TABLE IF NOT EXISTS eeg_training_samples (
     sample_id BIGSERIAL PRIMARY KEY,
     session_id UUID REFERENCES listening_sessions (session_id) ON DELETE CASCADE,
     sample INT NOT NULL,
@@ -97,10 +96,10 @@ CREATE TABLE eeg_training_samples (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_eeg_training_samples_session_sample
+CREATE INDEX IF NOT EXISTS idx_eeg_training_samples_session_sample
     ON eeg_training_samples (session_id, sample);
 
-CREATE TABLE wearable_training_samples (
+CREATE TABLE IF NOT EXISTS wearable_training_samples (
     sample_id BIGSERIAL PRIMARY KEY,
     session_id UUID REFERENCES listening_sessions (session_id) ON DELETE CASCADE,
     sensor_type VARCHAR(10) NOT NULL,
@@ -111,8 +110,8 @@ CREATE TABLE wearable_training_samples (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_wearable_training_samples_session_ts
+CREATE INDEX IF NOT EXISTS idx_wearable_training_samples_session_ts
     ON wearable_training_samples (session_id, timestamp);
 
-CREATE INDEX idx_wearable_training_samples_type
+CREATE INDEX IF NOT EXISTS idx_wearable_training_samples_type
     ON wearable_training_samples (sensor_type);
