@@ -3,6 +3,7 @@ package com.example.progetto
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,7 +16,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -30,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.screens.*
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.AuthViewModel
+import androidx.compose.foundation.clickable
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -155,7 +159,24 @@ fun GlobalDrawerNavigation() {
                         val hideTopBarRoutes = listOf("welcome", "login", "register", "registration_success", "forgot_password", "player")
                         if (currentRoute !in hideTopBarRoutes) {
                             TopAppBar(
-                                title = { Text("HeartMusic", fontSize = 20.sp, color = Color.Black) },
+                                title = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.logo),
+                                            contentDescription = "Logo",
+                                            modifier = Modifier
+                                                .size(80.dp)
+                                                .clickable {
+                                                    navController.navigate("home") {
+                                                        popUpTo("home") { inclusive = true }
+                                                    }
+                                                },
+                                            contentScale = ContentScale.Fit
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("HeartMusic", fontSize = 20.sp, color = Color.Black)
+                                    }
+                                },
                                 actions = {
                                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                         Icon(
