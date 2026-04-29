@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
 import csv
 from database import db
+from sqlalchemy import or_
 from models import (
     ListeningSession,
     SurveyResponse,
@@ -13,6 +14,8 @@ from models import (
     EEGTrainingSample,
     WearableTrainingSample,
     SongReview,
+    Song,
+    Emotion
 )
 
 # Create a 'Blueprint' to hold all our URLs
@@ -133,10 +136,10 @@ def save_survey():
     return jsonify({"message": "Survey response saved!"}), 201
 
 # ==========================================
-# 3. SEND PLAYLISTS TO THE PHONE
+# 3. PLAYLISTS
 # ==========================================
 @api.route('/api/playlists/<int:emotion_id>', methods=['GET'])
-def get_playlist(emotion_id):
+def get_playlist_by_emotion(emotion_id):
     playlist = Playlist.query.filter_by(target_emotion_id=emotion_id).first()
     
     if not playlist:
@@ -154,6 +157,32 @@ def get_playlist(emotion_id):
         "playlist_title": playlist.title,
         "songs": song_list
     }), 200
+
+@api.route('/api/playlists/search', methods=['GET'])
+def search_playlists():
+    query = request.args.get('q', '')
+
+    if not query:
+        # If no query, return all playlists
+        playlists = Playlist.query.all()
+    else:
+        # Search by title, emotion name or song title
+        search_filter = or_(
+            Playlist.title.ilike(f'%{query}%'),
+            Emotion.name.ilike(f'%{query}%'),
+            Song.title.ilike(f'%{query}%')
+        )
+        playlists = Playlist.query.outerjoin(Emotion).outerjoin(Playlist.songs).filter(search_filter).distinct().all()
+
+    results = []
+    for p in playlists:
+        results.append({
+            "playlist_id": str(p.playlist_id),
+            "title": p.title,
+            "emotion": p.emotion.name if p.emotion else "General"
+        })
+
+    return jsonify({"playlists": results}), 200
 
 # ==========================================
 # 4. GET USER HISTORY
