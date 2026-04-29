@@ -12,6 +12,7 @@ from models import (
     SurveyQuestion,
     EEGTrainingSample,
     WearableTrainingSample,
+    SongReview,
 )
 
 # Create a 'Blueprint' to hold all our URLs
@@ -522,3 +523,70 @@ def export_training_data_for_classifier():
             "experiments": len(exp_map),
         }
     }), 200
+
+# ==========================================
+# 6. SONG REVIEWS (YOUR FEELINGS)
+# ==========================================
+
+@api.route('/api/reviews', methods=['POST'])
+def save_song_review():
+    data = request.get_json()
+
+    try:
+        new_review = SongReview(
+            user_id=data.get('user_id'),
+            valence=int(data.get('valence')),
+            arousal=int(data.get('arousal')),
+            description=data.get('description'),
+            detected_emotion=data.get('detected_emotion')
+        )
+        db.session.add(new_review)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Review saved successfully!",
+            "review_id": str(new_review.review_id)
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 400
+
+@api.route('/api/users/<uuid:user_id>/reviews', methods=['GET'])
+def get_user_reviews(user_id):
+    reviews = SongReview.query.filter_by(user_id=user_id).order_by(SongReview.created_at.desc()).all()
+
+    review_list = []
+    for r in reviews:
+        review_list.append({
+            "review_id": str(r.review_id),
+            "valence": r.valence,
+            "arousal": r.arousal,
+            "description": r.description,
+            "detected_emotion": r.detected_emotion,
+            "created_at": r.created_at.isoformat()
+        })
+
+    return jsonify({"reviews": review_list}), 200
+
+# ==========================================
+# 7. SYSTEM: IMPORT SONGS
+# ==========================================
+
+@api.route('/api/system/import-songs', methods=['POST'])
+def trigger_song_import():
+    """Trigger the CSV import process"""
+    from importer.import_songs import import_from_csv
+    from pathlib import Path
+
+    db_dir = Path(__file__).resolve().parent / 'importer'
+    csv_files = list(db_dir.glob("*.csv"))
+
+    if not csv_files:
+        return jsonify({"error": "No CSV files found in backend/database/"}), 404
+
+    try:
+        for csv_file in csv_files:
+            import_from_csv(csv_file)
+        return jsonify({"message": "Import completed successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

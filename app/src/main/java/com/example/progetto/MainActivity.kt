@@ -259,7 +259,8 @@ fun AppNavigation(
         }
         composable("your_feelings") {
             YourFeelingsScreen(
-                onOpenDrawer = onOpenDrawer
+                onOpenDrawer = onOpenDrawer,
+                authViewModel = authViewModel
             )
         }
         composable("insights") {

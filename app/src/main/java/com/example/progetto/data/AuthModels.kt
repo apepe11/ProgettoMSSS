@@ -37,3 +37,27 @@ data class LoginResponse(
 data class ErrorResponse(
     val error: String
 )
+
+/**
+ * Modelli per le Song Review (Your Feelings)
+ */
+data class SongReviewRequest(
+    @SerializedName("user_id") val userId: String,
+    val valence: Int,
+    val arousal: Int,
+    val description: String,
+    @SerializedName("detected_emotion") val detectedEmotion: String?
+)
+
+data class SongReviewResponse(
+    @SerializedName("review_id") val reviewId: String,
+    val valence: Int,
+    val arousal: Int,
+    val description: String,
+    @SerializedName("detected_emotion") val detectedEmotion: String?,
+    @SerializedName("created_at") val createdAt: String
+)
+
+data class UserReviewsResponse(
+    val reviews: List<SongReviewResponse>
+)

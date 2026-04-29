@@ -19,8 +19,13 @@ class User(db.Model):
 class Song(db.Model):
     __tablename__ = 'songs'
     song_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    allmusic_id = db.Column(db.String(255)) # "Song" column in CSV
     title = db.Column(db.String(255), nullable=False)
     artist = db.Column(db.String(255), nullable=False)
+    quadrant = db.Column(db.String(10))     # Q1, Q2, Q3, Q4
+    pquad = db.Column(db.Float)
+    genres = db.Column(db.Text)             # "GenresStr"
+    moods = db.Column(db.Text)              # "MoodsStr"
     duration_sec = db.Column(db.Integer)
     file_url = db.Column(db.String(255), nullable=False)
 
@@ -86,6 +91,16 @@ class SurveyResponse(db.Model):
     answer_data = db.Column(JSONB, nullable=False) 
     
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class SongReview(db.Model):
+    __tablename__ = 'song_reviews'
+    review_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
+    valence = db.Column(db.Integer, nullable=False) # Parametro 1 (Slider)
+    arousal = db.Column(db.Integer, nullable=False) # Parametro 2 (Slider)
+    description = db.Column(db.Text)                # Descrizione (Stringa)
+    detected_emotion = db.Column(db.String(100))    # Emozione rilevata dal classificatore
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # ==========================================

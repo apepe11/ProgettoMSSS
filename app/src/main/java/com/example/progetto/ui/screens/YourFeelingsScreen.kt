@@ -1,114 +1,203 @@
 package com.example.progetto.ui.screens
 
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.progetto.ui.theme.HeartMusicTheme
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.progetto.data.SongReviewResponse
+import com.example.progetto.ui.theme.HeartPurple
+import com.example.progetto.ui.viewmodels.AuthViewModel
+import com.example.progetto.ui.viewmodels.FeelingUiState
+import com.example.progetto.ui.viewmodels.FeelingViewModel
 
 @Composable
 fun YourFeelingsScreen(
-    onOpenDrawer: () -> Unit = {} // Can be kept here so your navigation doesn't break
+    onOpenDrawer: () -> Unit = {},
+    authViewModel: AuthViewModel,
+    feelingViewModel: FeelingViewModel = viewModel()
 ) {
-    // Replaced Scaffold with a clean vertical Column
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // 1. Local Title (replaces the text that was in the TopAppBar)
-        Text(
-            text = "Your Feelings",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(start = 24.dp, top = 24.dp, end = 24.dp, bottom = 16.dp)
-        )
+    val userId = authViewModel.currentUser?.userId
+    val uiState = feelingViewModel.uiState
 
-        // 2. The List of Feelings
-        LazyColumn(
+    // Carica le review all'avvio
+    LaunchedEffect(userId) {
+        userId?.let { feelingViewModel.loadReviews(it) }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF8F9FA))
+    ) {
+        // Header con solo il Titolo
+        Box(
             modifier = Modifier
-                .weight(1f) // Takes up all the remaining space below the title
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 24.dp)
+                .padding(24.dp),
+            contentAlignment = Alignment.CenterStart
         ) {
-            items(6) { // Mostra 6 elementi come esempio
-                FeelingEntryItem()
+            Text(
+                text = "Your Feelings",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = HeartPurple
+            )
+        }
+
+        when (uiState) {
+            is FeelingUiState.Loading -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = HeartPurple)
+                }
+            }
+            is FeelingUiState.Error -> {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(text = uiState.message, color = Color.Red)
+                }
+            }
+            is FeelingUiState.Success -> {
+                if (uiState.reviews.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = "No feelings recorded yet.", color = Color.Gray)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        contentPadding = PaddingValues(bottom = 24.dp)
+                    ) {
+                        items(uiState.reviews) { review ->
+                            FeelingEntryItem(review)
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-fun FeelingEntryItem() {
-    Row(
+fun FeelingEntryItem(review: SongReviewResponse) {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
-            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+            .wrapContentHeight(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        // Colonna 1°
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(50.dp)
-                .border(0.5.dp, Color.Gray),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Text(
-                text = "1°",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
+        Column {
+            Row(
+                modifier = Modifier.height(110.dp)
+            ) {
+                // Parametro 1 (Valence)
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(70.dp)
+                        .background(HeartPurple.copy(alpha = 0.05f))
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "Vibe", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        text = "${review.valence}°",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = HeartPurple
+                    )
+                }
 
-        // Colonna 2°
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .width(50.dp)
-                .border(0.5.dp, Color.Gray),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            Text(
-                text = "2°",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(top = 8.dp)
-            )
-        }
+                // Separatore verticale
+                Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(Color(0xFFEEEEEE)))
 
-        // Colonna Description
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
-            contentAlignment = Alignment.TopStart
-        ) {
-            Text(
-                text = "DESCRIPTION",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color.Gray
-            )
-        }
-    }
-}
+                // Parametro 2 (Arousal)
+                Column(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .width(70.dp)
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "Energy", fontSize = 12.sp, color = Color.Gray)
+                    Text(
+                        text = "${review.arousal}°",
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = HeartPurple
+                    )
+                }
 
-@Preview(showBackground = true)
-@Composable
-fun YourFeelingsScreenPreview() {
-    HeartMusicTheme {
-        YourFeelingsScreen()
+                // Separatore verticale
+                Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(Color(0xFFEEEEEE)))
+
+                // Colonna Description
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.Top
+                ) {
+                    Text(
+                        text = "DESCRIPTION",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = HeartPurple.copy(alpha = 0.6f),
+                        letterSpacing = 1.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = review.description,
+                        fontSize = 14.sp,
+                        color = Color.DarkGray,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+            
+            // Badge Emozione Rilevata
+            review.detectedEmotion?.let { emotion ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(HeartPurple.copy(alpha = 0.1f))
+                        .padding(vertical = 4.dp, horizontal = 16.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Detected Emotion:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = emotion,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = HeartPurple
+                        )
+                    }
+                }
+            }
+        }
     }
 }

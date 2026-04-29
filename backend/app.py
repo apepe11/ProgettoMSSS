@@ -31,6 +31,17 @@ with app.app_context():
     import models
     db.create_all()
 
+    # NOVITÀ: Popolamento automatico se la tabella songs è vuota
+    from models import Song
+    if Song.query.count() == 0:
+        print("Database songs empty. Triggering automatic import...")
+        from importer.import_songs import import_from_csv
+        from pathlib import Path
+        db_dir = Path(__file__).resolve().parent / 'importer'
+        csv_files = list(db_dir.glob("*.csv"))
+        for csv_file in csv_files:
+            import_from_csv(csv_file)
+
 # 4. Run the server
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5000, debug=True)
