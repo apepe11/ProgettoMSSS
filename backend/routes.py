@@ -1,8 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
 import csv
+import os
 from database import db
 from sqlalchemy import or_
 from models import (
@@ -20,6 +21,14 @@ from models import (
 
 # Create a 'Blueprint' to hold all our URLs
 api = Blueprint('api', __name__)
+
+# Configura il percorso della cartella delle canzoni
+SONGS_FOLDER = Path(__file__).resolve().parent / 'song'
+
+@api.route('/song/<path:filename>')
+def serve_song(filename):
+    """Serve a song file from the 'song' directory"""
+    return send_from_directory(SONGS_FOLDER, filename)
 
 def send_welcome_email(user_email, username):
     from app import mail # Import circolare gestito dentro la funzione
@@ -136,7 +145,7 @@ def save_survey():
     return jsonify({"message": "Survey response saved!"}), 201
 
 # ==========================================
-# 3. PLAYLISTS
+# 3. PLAYLISTS & SONGS
 # ==========================================
 
 @api.route('/api/playlists/<int:emotion_id>', methods=['GET'])
@@ -208,6 +217,21 @@ def get_playlist_details(playlist_id):
         "title": playlist.title,
         "emotion": playlist.emotion.name if playlist.emotion else "General",
         "songs": song_list
+    }), 200
+
+@api.route('/api/songs/<uuid:song_id>', methods=['GET'])
+def get_song_details(song_id):
+    """Get details for a single song"""
+    song = Song.query.get(song_id)
+    if not song:
+        return jsonify({"error": "Song not found"}), 404
+
+    return jsonify({
+        "song_id": str(song.song_id),
+        "title": song.title,
+        "artist": song.artist,
+        "url": song.file_url,
+        "duration": song.duration_sec
     }), 200
 
 # ==========================================

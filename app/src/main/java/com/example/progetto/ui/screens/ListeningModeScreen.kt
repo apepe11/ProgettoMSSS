@@ -28,7 +28,7 @@ import com.example.progetto.ui.viewmodels.ListeningViewModel
 @Composable
 fun ListeningModeScreen(
     onNavigateToPlaylist: (String) -> Unit = {},
-    onNavigateToPlayer: () -> Unit = {},
+    onNavigateToPlayer: (String, String, String) -> Unit = { _, _, _ -> },
     onOpenDrawer: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     viewModel: ListeningViewModel = viewModel()
@@ -120,7 +120,7 @@ fun ListeningModeScreen(
         }
 
         // 4. MiniPlayer pinned to the bottom
-        MiniPlayer(onClick = onNavigateToPlayer)
+        MiniPlayer(onClick = { onNavigateToPlayer("Unknown", "Unknown", "") })
     }
 }
 

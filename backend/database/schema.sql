@@ -115,3 +115,8 @@ CREATE INDEX IF NOT EXISTS idx_wearable_training_samples_session_ts
 
 CREATE INDEX IF NOT EXISTS idx_wearable_training_samples_type
     ON wearable_training_samples (sensor_type);
+
+INSERT INTO emotions (emotion_id, name) VALUES (1, 'Happy') ON CONFLICT DO NOTHING;
+INSERT INTO songs (song_id, allmusic_id, title, artist, duration_sec, file_url) VALUES ('550e8400-e29b-41d4-a716-446655440000', 'MT0005674518', 'Ain''t the same', 'John Lennon', 30, '/song/MT0005674518.mp3') ON CONFLICT (song_id) DO NOTHING;
+INSERT INTO playlists (playlist_id, title, target_emotion_id) VALUES ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Happy Songs', 1) ON CONFLICT (playlist_id) DO NOTHING;
+INSERT INTO playlist_songs (playlist_id, song_id) VALUES ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', '550e8400-e29b-41d4-a716-446655440000') ON CONFLICT DO NOTHING;

@@ -25,7 +25,7 @@ import com.example.progetto.ui.viewmodels.PlaylistViewModel
 @Composable
 fun PlaylistDetailScreen(
     playlistId: String,
-    onNavigateToPlayer: () -> Unit = {},
+    onNavigateToPlayer: (String, String, String) -> Unit = { _, _, _ -> },
     onNavigateBack: () -> Unit = {},
     viewModel: PlaylistViewModel = viewModel()
 ) {
@@ -132,7 +132,9 @@ fun PlaylistDetailScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .clickable { onNavigateToPlayer() },
+                                .clickable { 
+                                    onNavigateToPlayer(song.title, song.artist, song.url) 
+                                },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Box(
@@ -165,8 +167,8 @@ fun PlaylistDetailScreen(
             }
         }
 
-        // 3. MiniPlayer
-        MiniPlayer(onClick = onNavigateToPlayer)
+        // 3. MiniPlayer (Placeholder info)
+        MiniPlayer(onClick = { /* Could pass current song if tracked */ })
     }
 }
 
