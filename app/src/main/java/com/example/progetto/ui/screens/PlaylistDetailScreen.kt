@@ -21,18 +21,25 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.PlaylistViewModel
+import com.example.progetto.ui.viewmodels.PlayerViewModel
 
 @Composable
 fun PlaylistDetailScreen(
     playlistId: String,
     onNavigateToPlayer: (String, String, String) -> Unit = { _, _, _ -> },
     onNavigateBack: () -> Unit = {},
-    viewModel: PlaylistViewModel = viewModel()
+    viewModel: PlaylistViewModel = viewModel(),
+    playerViewModel: PlayerViewModel = viewModel()
 ) {
     val playlistDetail by viewModel.playlistDetail.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val filteredSongs by viewModel.filteredSongs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    val currentSongTitle by playerViewModel.currentSongTitle.collectAsState()
+    val isPlaying by playerViewModel.isPlaying.collectAsState()
+    val currentArtistName by playerViewModel.currentArtistName.collectAsState()
+    val currentSongUrl by playerViewModel.currentSongUrl.collectAsState()
 
     LaunchedEffect(playlistId) {
         viewModel.loadPlaylistDetails(playlistId)
@@ -167,8 +174,16 @@ fun PlaylistDetailScreen(
             }
         }
 
-        // 3. MiniPlayer (Placeholder info)
-        MiniPlayer(onClick = { /* Could pass current song if tracked */ })
+        // 3. MiniPlayer
+        if (currentSongUrl.isNotEmpty()) {
+            MiniPlayer(
+                songTitle = currentSongTitle,
+                artistName = currentArtistName,
+                isPlaying = isPlaying,
+                onTogglePlay = { playerViewModel.togglePlayPause() },
+                onClick = { onNavigateToPlayer(currentSongTitle, currentArtistName, currentSongUrl) }
+            )
+        }
     }
 }
 

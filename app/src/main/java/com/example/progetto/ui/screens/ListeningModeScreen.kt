@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.SkipNext
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.ListeningViewModel
+import com.example.progetto.ui.viewmodels.PlayerViewModel
 
 @Composable
 fun ListeningModeScreen(
@@ -31,11 +33,17 @@ fun ListeningModeScreen(
     onNavigateToPlayer: (String, String, String) -> Unit = { _, _, _ -> },
     onOpenDrawer: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
-    viewModel: ListeningViewModel = viewModel()
+    viewModel: ListeningViewModel = viewModel(),
+    playerViewModel: PlayerViewModel = viewModel()
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    val currentSongTitle by playerViewModel.currentSongTitle.collectAsState()
+    val isPlaying by playerViewModel.isPlaying.collectAsState()
+    val currentArtistName by playerViewModel.currentArtistName.collectAsState()
+    val currentSongUrl by playerViewModel.currentSongUrl.collectAsState()
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -120,7 +128,15 @@ fun ListeningModeScreen(
         }
 
         // 4. MiniPlayer pinned to the bottom
-        MiniPlayer(onClick = { onNavigateToPlayer("Unknown", "Unknown", "") })
+        if (currentSongUrl.isNotEmpty()) {
+            MiniPlayer(
+                songTitle = currentSongTitle,
+                artistName = currentArtistName,
+                isPlaying = isPlaying,
+                onTogglePlay = { playerViewModel.togglePlayPause() },
+                onClick = { onNavigateToPlayer(currentSongTitle, currentArtistName, currentSongUrl) }
+            )
+        }
     }
 }
 
@@ -155,7 +171,13 @@ fun EmptyPlaylistsView(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun MiniPlayer(onClick: () -> Unit) {
+fun MiniPlayer(
+    songTitle: String,
+    artistName: String,
+    isPlaying: Boolean,
+    onTogglePlay: () -> Unit,
+    onClick: () -> Unit
+) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -172,17 +194,33 @@ fun MiniPlayer(onClick: () -> Unit) {
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color.White, RoundedCornerShape(4.dp))
-            )
+                    .background(Color.White, RoundedCornerShape(4.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Default.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+            }
             Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = "Name of the song",
-                color = Color.White,
-                fontSize = 14.sp,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = { }) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null, tint = Color.White)
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = songTitle,
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    text = artistName,
+                    color = Color.White.copy(alpha = 0.7f),
+                    fontSize = 12.sp,
+                    maxLines = 1
+                )
+            }
+            IconButton(onClick = onTogglePlay) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = Color.White
+                )
             }
             IconButton(onClick = { }) {
                 Icon(Icons.Default.SkipNext, contentDescription = null, tint = Color.White)

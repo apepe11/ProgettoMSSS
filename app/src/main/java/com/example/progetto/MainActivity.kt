@@ -4,9 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
@@ -14,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +28,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.screens.*
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.AuthViewModel
+import com.example.progetto.ui.viewmodels.PlayerViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -56,6 +54,7 @@ fun GlobalDrawerNavigation() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val authViewModel: AuthViewModel = viewModel()
+    val playerViewModel: PlayerViewModel = viewModel()
 
     // Track current route to know when to show the top menu
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -89,12 +88,11 @@ fun GlobalDrawerNavigation() {
                                 .fillMaxWidth()
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            // CHANGED: This moves the text to the left side!
                             horizontalArrangement = Arrangement.Start
                         ) {
                             Text(
                                 text = username,
-                                fontSize = 24.sp, // Made it slightly larger so it looks like a nice header!
+                                fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 // CHANGED: This makes it your theme's primary color (Purple)
                                 color = MaterialTheme.colorScheme.primary
@@ -178,6 +176,7 @@ fun GlobalDrawerNavigation() {
                         AppNavigation(
                             navController = navController,
                             authViewModel = authViewModel,
+                            playerViewModel = playerViewModel,
                             onOpenDrawer = { scope.launch { drawerState.open() } }
                         )
                     }
@@ -191,6 +190,7 @@ fun GlobalDrawerNavigation() {
 fun AppNavigation(
     navController: androidx.navigation.NavHostController,
     authViewModel: AuthViewModel,
+    playerViewModel: PlayerViewModel,
     onOpenDrawer: () -> Unit
 ) {
     NavHost(navController = navController, startDestination = "welcome") {
@@ -247,7 +247,8 @@ fun AppNavigation(
                     val encodedUrl = Uri.encode(url)
                     navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
                 },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                playerViewModel = playerViewModel
             )
         }
         composable(
@@ -261,7 +262,8 @@ fun AppNavigation(
                     val encodedUrl = Uri.encode(url)
                     navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
                 },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                playerViewModel = playerViewModel
             )
         }
         composable("your_feelings") {
@@ -303,7 +305,8 @@ fun AppNavigation(
                 songTitle = title,
                 artistName = artist,
                 songUrl = url,
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = playerViewModel
             )
         }
     }
