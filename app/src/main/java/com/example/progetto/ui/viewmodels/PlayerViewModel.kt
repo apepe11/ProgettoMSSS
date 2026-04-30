@@ -5,6 +5,7 @@ import android.media.MediaPlayer
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.progetto.data.SongResponse
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +36,10 @@ class PlayerViewModel : ViewModel() {
     private var progressJob: Job? = null
     private var isPreparing = false
 
+    // Playlist management
+    private val _currentPlaylist = MutableStateFlow<List<SongResponse>>(emptyList())
+    private var _currentIndex = -1
+
     private fun getOrCreateModelPlayer(): MediaPlayer {
         if (mediaPlayer == null) {
             mediaPlayer = MediaPlayer().apply {
@@ -57,6 +62,8 @@ class PlayerViewModel : ViewModel() {
                     _isPlaying.value = false
                     _currentPosition.value = it.duration
                     stopProgressUpdate()
+                    // Auto-play next song if available
+                    playNext()
                 }
                 setOnErrorListener { mp, what, extra ->
                     Log.e("PlayerViewModel", "Errore MediaPlayer: what=$what, extra=$extra")
@@ -83,7 +90,6 @@ class PlayerViewModel : ViewModel() {
                             val pos = mp.currentPosition
                             _currentPosition.value = pos
                             
-                            // Controllo stallo (se la posizione non cambia per 5 secondi mentre dovrebbe suonare)
                             if (pos == lastPos && pos < _duration.value - 500) {
                                 stallCount++
                                 if (stallCount >= 5) {
@@ -97,7 +103,6 @@ class PlayerViewModel : ViewModel() {
                         }
                     }
                 } catch (e: Exception) {
-                    // Stato invalido del player, usciamo dal loop
                     break
                 }
                 delay(1000)
@@ -109,24 +114,25 @@ class PlayerViewModel : ViewModel() {
         progressJob?.cancel()
     }
 
+    fun updatePlaylist(songs: List<SongResponse>, startIndex: Int) {
+        _currentPlaylist.value = songs
+        _currentIndex = startIndex
+    }
+
     fun playSong(title: String, artist: String, url: String) {
         Log.d("PlayerViewModel", "playSong richiesta per: $url")
         
         val mp = getOrCreateModelPlayer()
         
-        // Se è la stessa canzone, verifichiamo se sta effettivamente suonando
         if (_currentSongUrl.value == url && (_isPlaying.value || isPreparing)) {
             try {
                 if (mp.isPlaying) {
                     Log.d("PlayerViewModel", "La canzone è già in riproduzione, salto il caricamento")
                     return
                 }
-            } catch (e: Exception) {
-                // Se isPlaying fallisce, il player è in uno stato che richiede reset
-            }
+            } catch (e: Exception) {}
         }
 
-        // Reset stati e caricamento
         _currentSongTitle.value = title
         _currentArtistName.value = artist
         _currentSongUrl.value = url
@@ -153,29 +159,45 @@ class PlayerViewModel : ViewModel() {
         }
     }
 
+    fun playNext() {
+        val playlist = _currentPlaylist.value
+        if (playlist.isNotEmpty() && _currentIndex < playlist.size - 1) {
+            _currentIndex++
+            val nextSong = playlist[_currentIndex]
+            playSong(nextSong.title, nextSong.artist, nextSong.url)
+        }
+    }
+
+    fun playPrevious() {
+        val playlist = _currentPlaylist.value
+        if (playlist.isNotEmpty() && _currentIndex > 0) {
+            _currentIndex--
+            val prevSong = playlist[_currentIndex]
+            playSong(prevSong.title, prevSong.artist, prevSong.url)
+        } else if (playlist.isNotEmpty() && _currentIndex == 0) {
+            // Se è la prima canzone, ricomincia da capo
+            seekTo(0)
+        }
+    }
+
     fun togglePlayPause() {
         val mp = mediaPlayer ?: return
         try {
             if (mp.isPlaying) {
-                Log.d("PlayerViewModel", "Pausa richiesta")
                 mp.pause()
                 _isPlaying.value = false
                 stopProgressUpdate()
             } else {
-                // Verifichiamo se dobbiamo ricaricare (fine canzone o stallo)
                 val isAtEnd = _duration.value > 0 && mp.currentPosition >= _duration.value - 1500
-                if (isAtEnd || mp.currentPosition == 0 && !isPreparing) {
-                    Log.d("PlayerViewModel", "Riavvio canzone (fine o inizio)")
+                if (isAtEnd || (mp.currentPosition == 0 && !isPreparing)) {
                     playSong(_currentSongTitle.value, _currentArtistName.value, _currentSongUrl.value)
                 } else {
-                    Log.d("PlayerViewModel", "Ripresa riproduzione")
                     mp.start()
                     _isPlaying.value = true
                     startProgressUpdate()
                 }
             }
         } catch (e: Exception) {
-            Log.e("PlayerViewModel", "Eccezione in togglePlayPause, forzo ricaricamento", e)
             playSong(_currentSongTitle.value, _currentArtistName.value, _currentSongUrl.value)
         }
     }

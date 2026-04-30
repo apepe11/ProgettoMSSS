@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -135,11 +135,13 @@ fun PlaylistDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxSize()
                 ) {
-                    items(filteredSongs) { song ->
+                    itemsIndexed(filteredSongs) { index, song ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable { 
+                                    // Aggiorniamo la playlist nel PlayerViewModel prima di navigare
+                                    playerViewModel.updatePlaylist(filteredSongs, index)
                                     onNavigateToPlayer(song.title, song.artist, song.url) 
                                 },
                             verticalAlignment = Alignment.CenterVertically

@@ -25,8 +25,13 @@ fun MusicPlayerScreen(
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
     
+    // Osserviamo i cambiamenti del titolo e artista dal ViewModel perché possono cambiare con Next/Prev
+    val actualTitle by viewModel.currentSongTitle.collectAsState()
+    val actualArtist by viewModel.currentArtistName.collectAsState()
+    
     var isFavorite by remember { mutableStateOf(false) }
 
+    // Carichiamo la canzone solo se è diversa da quella attualmente in canna
     LaunchedEffect(songUrl) {
         if (songUrl.isNotEmpty()) {
             viewModel.playSong(songTitle, artistName, songUrl)
@@ -80,8 +85,8 @@ fun MusicPlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = songTitle, style = MaterialTheme.typography.headlineSmall)
-                    Text(text = artistName, style = MaterialTheme.typography.bodyLarge)
+                    Text(text = actualTitle, style = MaterialTheme.typography.headlineSmall)
+                    Text(text = actualArtist, style = MaterialTheme.typography.bodyLarge)
                 }
 
                 IconButton(onClick = { isFavorite = !isFavorite }) {
@@ -122,7 +127,7 @@ fun MusicPlayerScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                IconButton(onClick = { /* Previous */ }) {
+                IconButton(onClick = { viewModel.playPrevious() }) {
                     Icon(Icons.Default.SkipPrevious, contentDescription = "Previous")
                 }
 
@@ -139,7 +144,7 @@ fun MusicPlayerScreen(
                     )
                 }
 
-                IconButton(onClick = { /* Next */ }) {
+                IconButton(onClick = { viewModel.playNext() }) {
                     Icon(Icons.Default.SkipNext, contentDescription = "Next")
                 }
             }
