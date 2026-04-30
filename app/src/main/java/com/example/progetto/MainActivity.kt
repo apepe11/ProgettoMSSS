@@ -13,7 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -155,7 +157,24 @@ fun GlobalDrawerNavigation() {
                         val isPlayerRoute = currentRoute?.startsWith("player") == true
                         if (currentRoute !in hideTopBarRoutes && !isPlayerRoute) {
                             TopAppBar(
-                                title = { Text("HeartMusic", fontSize = 20.sp, color = Color.Black) },
+                                title = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.logo),
+                                            contentDescription = "Logo",
+                                            modifier = Modifier
+                                                .size(80.dp)
+                                                .clickable {
+                                                    navController.navigate("home") {
+                                                        popUpTo("home") { inclusive = true }
+                                                    }
+                                                },
+                                            contentScale = ContentScale.Fit
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("HeartMusic", fontSize = 20.sp, color = Color.Black)
+                                    }
+                                },
                                 actions = {
                                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                         Icon(
