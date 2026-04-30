@@ -34,7 +34,5 @@ object RetrofitClient {
         retrofit.create(PlaylistApi::class.java)
     }
 
-    val songApiService: SongApi by lazy {
-        retrofit.create(SongApi::class.java)
-    }
+
 }

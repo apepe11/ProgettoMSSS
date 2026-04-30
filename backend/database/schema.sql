@@ -1,10 +1,10 @@
--- CREATE DATABASE IF NOT EXISTS HeartMusic_database;
+CREATE DATABASE IF NOT EXISTS HeartMusic_database;
 
 -- ==========================================
 -- 1. USER AUTHENTICATION & CORE
 -- ==========================================
 
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
     user_id UUID PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -13,16 +13,20 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS songs (
+CREATE TABLE songs (
     song_id UUID PRIMARY KEY,
     allmusic_id VARCHAR(255),
     title VARCHAR(255) NOT NULL,
     artist VARCHAR(255) NOT NULL,
+    quadrant VARCHAR(50),      -- Added
+    qquad VARCHAR(50),         -- Added
+    genres VARCHAR(255),       -- Added
+    moods VARCHAR(255),        -- Added
     duration_sec INT,
     file_url VARCHAR(255) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS emotions (
+CREATE TABLE emotions (
     emotion_id INT PRIMARY KEY,
     name VARCHAR(100) NOT NULL UNIQUE
 );
@@ -31,13 +35,13 @@ CREATE TABLE IF NOT EXISTS emotions (
 -- 2. PLAYLISTS & CURATION
 -- ==========================================
 
-CREATE TABLE IF NOT EXISTS playlists (
+CREATE TABLE playlists (
     playlist_id UUID PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     target_emotion_id INT REFERENCES emotions (emotion_id) ON DELETE SET NULL
 );
 
-CREATE TABLE IF NOT EXISTS playlist_songs (
+CREATE TABLE playlist_songs (
     playlist_id UUID REFERENCES playlists (playlist_id) ON DELETE CASCADE,
     song_id UUID REFERENCES songs (song_id) ON DELETE CASCADE,
     PRIMARY KEY (playlist_id, song_id)
@@ -47,7 +51,7 @@ CREATE TABLE IF NOT EXISTS playlist_songs (
 -- 3. SENSORS & ALGORITHM ANALYSIS
 -- ==========================================
 
-CREATE TABLE IF NOT EXISTS listening_sessions (
+CREATE TABLE listening_sessions (
     session_id UUID PRIMARY KEY,
     user_id UUID REFERENCES users (user_id) ON DELETE CASCADE,
     song_id UUID REFERENCES songs (song_id) ON DELETE CASCADE,
@@ -62,13 +66,13 @@ CREATE TABLE IF NOT EXISTS listening_sessions (
 -- 4. THE FLEXIBLE GROUND TRUTH
 -- ==========================================
 
-CREATE TABLE IF NOT EXISTS survey_questions (
+CREATE TABLE survey_questions (
     question_id INT PRIMARY KEY,
     question_text VARCHAR(255) NOT NULL,
     question_type VARCHAR(50) NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS survey_responses (
+CREATE TABLE survey_responses (
     response_id UUID PRIMARY KEY,
     session_id UUID REFERENCES listening_sessions (session_id) ON DELETE CASCADE,
     user_id UUID REFERENCES users (user_id) ON DELETE CASCADE,
@@ -81,7 +85,7 @@ CREATE TABLE IF NOT EXISTS survey_responses (
 -- 5. RAW TRAINING DATA (EEG / HR / EDA)
 -- ==========================================
 
-CREATE TABLE IF NOT EXISTS eeg_training_samples (
+CREATE TABLE eeg_training_samples (
     sample_id BIGSERIAL PRIMARY KEY,
     session_id UUID REFERENCES listening_sessions (session_id) ON DELETE CASCADE,
     sample INT NOT NULL,
@@ -96,10 +100,10 @@ CREATE TABLE IF NOT EXISTS eeg_training_samples (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_eeg_training_samples_session_sample
+CREATE INDEX idx_eeg_training_samples_session_sample
     ON eeg_training_samples (session_id, sample);
 
-CREATE TABLE IF NOT EXISTS wearable_training_samples (
+CREATE TABLE wearable_training_samples (
     sample_id BIGSERIAL PRIMARY KEY,
     session_id UUID REFERENCES listening_sessions (session_id) ON DELETE CASCADE,
     sensor_type VARCHAR(10) NOT NULL,
@@ -110,13 +114,18 @@ CREATE TABLE IF NOT EXISTS wearable_training_samples (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_wearable_training_samples_session_ts
+CREATE INDEX idx_wearable_training_samples_session_ts
     ON wearable_training_samples (session_id, timestamp);
 
-CREATE INDEX IF NOT EXISTS idx_wearable_training_samples_type
+CREATE INDEX idx_wearable_training_samples_type
     ON wearable_training_samples (sensor_type);
 
-INSERT INTO emotions (emotion_id, name) VALUES (1, 'Happy') ON CONFLICT DO NOTHING;
-INSERT INTO songs (song_id, allmusic_id, title, artist, duration_sec, file_url) VALUES ('550e8400-e29b-41d4-a716-446655440000', 'MT0005674518', 'Ain''t the same', 'John Lennon', 30, '/song/MT0005674518.mp3') ON CONFLICT (song_id) DO NOTHING;
-INSERT INTO playlists (playlist_id, title, target_emotion_id) VALUES ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Happy Songs', 1) ON CONFLICT (playlist_id) DO NOTHING;
-INSERT INTO playlist_songs (playlist_id, song_id) VALUES ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', '550e8400-e29b-41d4-a716-446655440000') ON CONFLICT DO NOTHING;
+-- ==========================================
+ -- DATI INIZIALI
+ -- ==========================================
+
+ INSERT INTO emotions (emotion_id, name) VALUES (1, 'Happy') ON CONFLICT (emotion_id) DO NOTHING;
+ INSERT INTO songs (song_id, allmusic_id, title, artist, duration_sec, file_url, quadrant, qquad, genres, moods) VALUES ('550e8400-e29b-41d4-a716-446655440000', 'MT0005674518', 'Ain''t the same', 'John Lennon', 30, '/static/music/song/MT0005674518.mp3', 'Q1', 'Happy', 'Pop', 'Happy') ON CONFLICT (song_id) DO NOTHING;
+ INSERT INTO playlists (playlist_id, title, target_emotion_id) VALUES ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'Happy Songs', 1) ON CONFLICT (playlist_id) DO NOTHING;
+ INSERT INTO playlist_songs (playlist_id, song_id) VALUES ('6ba7b810-9dad-11d1-80b4-00c04fd430c8', '550e8400-e29b-41d4-a716-446655440000') ON CONFLICT DO NOTHING;
+

@@ -22,13 +22,7 @@ from models import (
 # Create a 'Blueprint' to hold all our URLs
 api = Blueprint('api', __name__)
 
-# Configura il percorso della cartella delle canzoni
-SONGS_FOLDER = Path(__file__).resolve().parent / 'song'
 
-@api.route('/song/<path:filename>')
-def serve_song(filename):
-    """Serve a song file from the 'song' directory"""
-    return send_from_directory(SONGS_FOLDER, filename)
 
 def send_welcome_email(user_email, username):
     from app import mail # Import circolare gestito dentro la funzione
