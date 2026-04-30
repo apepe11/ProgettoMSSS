@@ -1,9 +1,11 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, send_from_directory
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 from pathlib import Path
 import csv
+import os
 from database import db
+from sqlalchemy import or_
 from models import (
     ListeningSession,
     SurveyResponse,
@@ -13,11 +15,14 @@ from models import (
     EEGTrainingSample,
     WearableTrainingSample,
     SongReview,
+    Song,
     Emotion
 )
 
 # Create a 'Blueprint' to hold all our URLs
 api = Blueprint('api', __name__)
+
+
 
 def send_welcome_email(user_email, username):
     from app import mail # Import circolare gestito dentro la funzione
@@ -134,26 +139,93 @@ def save_survey():
     return jsonify({"message": "Survey response saved!"}), 201
 
 # ==========================================
-# 3. SEND PLAYLISTS TO THE PHONE
+# 3. PLAYLISTS & SONGS
 # ==========================================
+
 @api.route('/api/playlists/<int:emotion_id>', methods=['GET'])
-def get_playlist(emotion_id):
+def get_playlist_by_emotion(emotion_id):
     playlist = Playlist.query.filter_by(target_emotion_id=emotion_id).first()
-    
+
     if not playlist:
         return jsonify({"error": "No playlist found for this emotion"}), 404
-        
+
     song_list = []
     for song in playlist.songs:
         song_list.append({
+            "song_id": str(song.song_id),
             "title": song.title,
             "artist": song.artist,
             "url": song.file_url
         })
-        
+
     return jsonify({
         "playlist_title": playlist.title,
         "songs": song_list
+    }), 200
+
+@api.route('/api/playlists', methods=['GET'])
+def get_playlists():
+    query = request.args.get('q', '')
+
+    if not query:
+        # If no query, return all playlists
+        playlists = Playlist.query.all()
+    else:
+        # Search by title, emotion name or song title
+        search_filter = or_(
+            Playlist.title.ilike(f'%{query}%'),
+            Emotion.name.ilike(f'%{query}%'),
+            Song.title.ilike(f'%{query}%')
+        )
+        playlists = Playlist.query.outerjoin(Emotion).outerjoin(Playlist.songs).filter(search_filter).distinct().all()
+
+    results = []
+    for p in playlists:
+        results.append({
+            "playlist_id": str(p.playlist_id),
+            "title": p.title,
+            "emotion": p.emotion.name if p.emotion else "General"
+        })
+
+    return jsonify({"playlists": results}), 200
+
+@api.route('/api/playlists/<uuid:playlist_id>', methods=['GET'])
+def get_playlist_details(playlist_id):
+    playlist = Playlist.query.get(playlist_id)
+
+    if not playlist:
+        return jsonify({"error": "Playlist not found"}), 404
+
+    song_list = []
+    for song in playlist.songs:
+        song_list.append({
+            "song_id": str(song.song_id),
+            "title": song.title,
+            "artist": song.artist,
+            "url": song.file_url,
+            "duration": song.duration_sec
+        })
+
+    return jsonify({
+        "playlist_id": str(playlist.playlist_id),
+        "title": playlist.title,
+        "emotion": playlist.emotion.name if playlist.emotion else "General",
+        "songs": song_list
+    }), 200
+
+@api.route('/api/songs/<uuid:song_id>', methods=['GET'])
+def get_song_details(song_id):
+    """Get details for a single song"""
+    song = Song.query.get(song_id)
+    if not song:
+        return jsonify({"error": "Song not found"}), 404
+
+    return jsonify({
+        "song_id": str(song.song_id),
+        "title": song.title,
+        "artist": song.artist,
+        "url": song.file_url,
+        "duration": song.duration_sec
     }), 200
 
 # ==========================================
