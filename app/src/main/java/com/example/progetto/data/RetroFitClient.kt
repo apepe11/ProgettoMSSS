@@ -18,12 +18,21 @@ object RetrofitClient {
         .addInterceptor(logging)
         .build()
 
-    val authApiService: AuthApi by lazy {
+    private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .addConverterFactory(GsonConverterFactory.create())
             .client(client)
             .build()
-            .create(AuthApi::class.java)
     }
+
+    val authApiService: AuthApi by lazy {
+        retrofit.create(AuthApi::class.java)
+    }
+
+    val playlistApiService: PlaylistApi by lazy {
+        retrofit.create(PlaylistApi::class.java)
+    }
+
+
 }

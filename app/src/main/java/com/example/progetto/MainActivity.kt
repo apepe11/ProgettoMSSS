@@ -1,11 +1,10 @@
 package com.example.progetto
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
@@ -13,9 +12,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -30,6 +30,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.screens.*
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.AuthViewModel
+import com.example.progetto.ui.viewmodels.PlayerViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -55,6 +56,7 @@ fun GlobalDrawerNavigation() {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val authViewModel: AuthViewModel = viewModel()
+    val playerViewModel: PlayerViewModel = viewModel()
 
     // Track current route to know when to show the top menu
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -88,12 +90,11 @@ fun GlobalDrawerNavigation() {
                                 .fillMaxWidth()
                                 .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            // CHANGED: This moves the text to the left side!
                             horizontalArrangement = Arrangement.Start
                         ) {
                             Text(
                                 text = username,
-                                fontSize = 24.sp, // Made it slightly larger so it looks like a nice header!
+                                fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 // CHANGED: This makes it your theme's primary color (Purple)
                                 color = MaterialTheme.colorScheme.primary
@@ -154,9 +155,27 @@ fun GlobalDrawerNavigation() {
                     topBar = {
                         // Do not show the top bar on login/welcome screens
                         val hideTopBarRoutes = listOf("welcome", "login", "register", "registration_success", "forgot_password", "player")
-                        if (currentRoute !in hideTopBarRoutes) {
+                        val isPlayerRoute = currentRoute?.startsWith("player") == true
+                        if (currentRoute !in hideTopBarRoutes && !isPlayerRoute) {
                             TopAppBar(
-                                title = { Text("HeartMusic", fontSize = 20.sp, color = Color.Black) },
+                                title = {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Image(
+                                            painter = painterResource(id = R.drawable.logo),
+                                            contentDescription = "Logo",
+                                            modifier = Modifier
+                                                .size(80.dp)
+                                                .clickable {
+                                                    navController.navigate("home") {
+                                                        popUpTo("home") { inclusive = true }
+                                                    }
+                                                },
+                                            contentScale = ContentScale.Fit
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("HeartMusic", fontSize = 20.sp, color = Color.Black)
+                                    }
+                                },
                                 actions = {
                                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                         Icon(
@@ -177,6 +196,7 @@ fun GlobalDrawerNavigation() {
                         AppNavigation(
                             navController = navController,
                             authViewModel = authViewModel,
+                            playerViewModel = playerViewModel,
                             onOpenDrawer = { scope.launch { drawerState.open() } }
                         )
                     }
@@ -190,6 +210,7 @@ fun GlobalDrawerNavigation() {
 fun AppNavigation(
     navController: androidx.navigation.NavHostController,
     authViewModel: AuthViewModel,
+    playerViewModel: PlayerViewModel,
     onOpenDrawer: () -> Unit
 ) {
     NavHost(navController = navController, startDestination = "welcome") {
@@ -239,23 +260,30 @@ fun AppNavigation(
         composable("listening_mode") {
             ListeningModeScreen(
                 onOpenDrawer = onOpenDrawer,
-                onNavigateToPlaylist = { playlistName ->
-                    navController.navigate("playlist_detail/$playlistName")
+                onNavigateToPlaylist = { playlistId ->
+                    navController.navigate("playlist_detail/$playlistId")
                 },
-                onNavigateToPlayer = { navController.navigate("player") },
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateToPlayer = { title, artist, url ->
+                    val encodedUrl = Uri.encode(url)
+                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
+                },
+                onNavigateBack = { navController.popBackStack() },
+                playerViewModel = playerViewModel
             )
         }
         composable(
-            route = "playlist_detail/{playlistName}",
-            arguments = listOf(navArgument("playlistName") { type = NavType.StringType })
+            route = "playlist_detail/{playlistId}",
+            arguments = listOf(navArgument("playlistId") { type = NavType.StringType })
         ) { backStackEntry ->
-            val playlistName = backStackEntry.arguments?.getString("playlistName") ?: ""
+            val playlistId = backStackEntry.arguments?.getString("playlistId") ?: ""
             PlaylistDetailScreen(
-                playlistName = playlistName,
-                onOpenDrawer = onOpenDrawer,
-                onNavigateToPlayer = { navController.navigate("player") },
-                onNavigateBack = { navController.popBackStack() }
+                playlistId = playlistId,
+                onNavigateToPlayer = { title, artist, url ->
+                    val encodedUrl = Uri.encode(url)
+                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
+                },
+                onNavigateBack = { navController.popBackStack() },
+                playerViewModel = playerViewModel
             )
         }
         composable("your_feelings") {
@@ -287,9 +315,23 @@ fun AppNavigation(
                 onSaveFeeling = { navController.popBackStack() }
             )
         }
-        composable("player") {
+        composable(
+            route = "player?title={title}&artist={artist}&url={url}",
+            arguments = listOf(
+                navArgument("title") { defaultValue = "Unknown" },
+                navArgument("artist") { defaultValue = "Unknown" },
+                navArgument("url") { defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val title = backStackEntry.arguments?.getString("title") ?: "Unknown"
+            val artist = backStackEntry.arguments?.getString("artist") ?: "Unknown"
+            val url = backStackEntry.arguments?.getString("url") ?: ""
             MusicPlayerScreen(
-                onNavigateBack = { navController.popBackStack() }
+                songTitle = title,
+                artistName = artist,
+                songUrl = url,
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = playerViewModel
             )
         }
     }
