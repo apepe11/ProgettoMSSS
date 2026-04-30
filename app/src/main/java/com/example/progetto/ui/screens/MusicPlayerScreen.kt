@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.progetto.ui.viewmodels.PlayerViewModel
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -21,10 +22,11 @@ fun MusicPlayerScreen(
     viewModel: PlayerViewModel
 ) {
     val isPlaying by viewModel.isPlaying.collectAsState()
+    val currentPosition by viewModel.currentPosition.collectAsState()
+    val duration by viewModel.duration.collectAsState()
+    
     var isFavorite by remember { mutableStateOf(false) }
 
-    // Utilizziamo il ViewModel condiviso per avviare la riproduzione.
-    // Il ViewModel si occuperà di non resettare se la canzone è la stessa.
     LaunchedEffect(songUrl) {
         if (songUrl.isNotEmpty()) {
             viewModel.playSong(songTitle, artistName, songUrl)
@@ -39,7 +41,7 @@ fun MusicPlayerScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Chiudi"
+                            contentDescription = "Close"
                         )
                     }
                 }
@@ -85,19 +87,42 @@ fun MusicPlayerScreen(
                 IconButton(onClick = { isFavorite = !isFavorite }) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Mi piace",
+                        contentDescription = "Favorite",
                         tint = if (isFavorite) Color.Red else LocalContentColor.current
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Progress Bar (Slider)
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Slider(
+                    value = currentPosition.toFloat(),
+                    onValueChange = { viewModel.seekTo(it.toInt()) },
+                    valueRange = 0f..(if (duration > 0) duration.toFloat() else 1f),
+                    colors = SliderDefaults.colors(
+                        thumbColor = MaterialTheme.colorScheme.primary,
+                        activeTrackColor = MaterialTheme.colorScheme.primary,
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = formatTime(currentPosition), style = MaterialTheme.typography.bodySmall)
+                    Text(text = formatTime(duration), style = MaterialTheme.typography.bodySmall)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                IconButton(onClick = { /* Precedente */ }) {
+                IconButton(onClick = { /* Previous */ }) {
                     Icon(Icons.Default.SkipPrevious, contentDescription = "Previous")
                 }
 
@@ -114,10 +139,17 @@ fun MusicPlayerScreen(
                     )
                 }
 
-                IconButton(onClick = { /* Successivo */ }) {
+                IconButton(onClick = { /* Next */ }) {
                     Icon(Icons.Default.SkipNext, contentDescription = "Next")
                 }
             }
         }
     }
+}
+
+private fun formatTime(milliseconds: Int): String {
+    val totalSeconds = milliseconds / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
 }

@@ -4,6 +4,8 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image as ComposeImage
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -96,7 +98,6 @@ fun GlobalDrawerNavigation() {
                                 text = username,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
-                                // CHANGED: This makes it your theme's primary color (Purple)
                                 color = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -160,7 +161,7 @@ fun GlobalDrawerNavigation() {
                             TopAppBar(
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Image(
+                                        ComposeImage(
                                             painter = painterResource(id = R.drawable.logo),
                                             contentDescription = "Logo",
                                             modifier = Modifier
@@ -305,7 +306,8 @@ fun AppNavigation(
         composable("emotion_analysis") {
             EmotionAnalysisScreen(
                 onOpenDrawer = onOpenDrawer,
-                onGoOn = { navController.navigate("review_emotion") }
+                onReviewSong = { navController.navigate("review_emotion") },
+                onGoOn = { /* Handled internally in screen */ }
             )
         }
         composable("review_emotion") {
