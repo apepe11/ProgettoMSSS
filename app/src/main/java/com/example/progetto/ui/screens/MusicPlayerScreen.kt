@@ -2,27 +2,34 @@ package com.example.progetto.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.example.progetto.ui.viewmodels.PlayerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicPlayerScreen(
-    onNavigateBack: () -> Unit = {}
+    songTitle: String = "Unknown",
+    artistName: String = "Unknown",
+    songUrl: String = "",
+    onNavigateBack: () -> Unit = {},
+    viewModel: PlayerViewModel
 ) {
-    var isPlaying by remember { mutableStateOf(false) }
+    val isPlaying by viewModel.isPlaying.collectAsState()
     var isFavorite by remember { mutableStateOf(false) }
+
+    // Utilizziamo il ViewModel condiviso per avviare la riproduzione.
+    // Il ViewModel si occuperà di non resettare se la canzone è la stessa.
+    LaunchedEffect(songUrl) {
+        if (songUrl.isNotEmpty()) {
+            viewModel.playSong(songTitle, artistName, songUrl)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -47,14 +54,19 @@ fun MusicPlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Placeholder per l'album art
+            // Album Art Placeholder
             Surface(
                 modifier = Modifier.size(300.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = MaterialTheme.shapes.medium
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text("Album Art")
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(100.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -66,10 +78,10 @@ fun MusicPlayerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Song Title", style = MaterialTheme.typography.headlineSmall)
-                    Text(text = "Artist Name", style = MaterialTheme.typography.bodyLarge)
+                    Text(text = songTitle, style = MaterialTheme.typography.headlineSmall)
+                    Text(text = artistName, style = MaterialTheme.typography.bodyLarge)
                 }
-                
+
                 IconButton(onClick = { isFavorite = !isFavorite }) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -88,9 +100,11 @@ fun MusicPlayerScreen(
                 IconButton(onClick = { /* Precedente */ }) {
                     Icon(Icons.Default.SkipPrevious, contentDescription = "Previous")
                 }
-                
+
                 FilledIconButton(
-                    onClick = { isPlaying = !isPlaying },
+                    onClick = {
+                        viewModel.togglePlayPause()
+                    },
                     modifier = Modifier.size(64.dp)
                 ) {
                     Icon(

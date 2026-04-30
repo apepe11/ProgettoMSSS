@@ -51,6 +51,9 @@ class Playlist(db.Model):
     title = db.Column(db.String(255), nullable=False)
     target_emotion_id = db.Column(db.Integer, db.ForeignKey('emotions.emotion_id', ondelete='SET NULL'))
     
+    # Relationship to Emotion
+    emotion = db.relationship('Emotion', backref='playlists')
+
     # This lets you easily get all songs in a playlist via Python!
     songs = db.relationship('Song', secondary=playlist_songs, lazy='subquery',
         backref=db.backref('playlists', lazy=True))

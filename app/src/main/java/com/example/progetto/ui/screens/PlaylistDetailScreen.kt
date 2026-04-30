@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,29 +18,59 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.theme.HeartMusicTheme
+import com.example.progetto.ui.viewmodels.PlaylistViewModel
+import com.example.progetto.ui.viewmodels.PlayerViewModel
 
 @Composable
 fun PlaylistDetailScreen(
-    playlistName: String,
-    onOpenDrawer: () -> Unit = {}, // Can be removed later if unused
-    onNavigateToPlayer: () -> Unit = {},
-    onNavigateBack: () -> Unit = {}
+    playlistId: String,
+    onNavigateToPlayer: (String, String, String) -> Unit = { _, _, _ -> },
+    onNavigateBack: () -> Unit = {},
+    viewModel: PlaylistViewModel = viewModel(),
+    playerViewModel: PlayerViewModel = viewModel()
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    val songs = listOf("SONG 1", "SONG 2", "SONG 3", "SONG 4", "SONG 5")
+    val playlistDetail by viewModel.playlistDetail.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val filteredSongs by viewModel.filteredSongs.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
-    // Removed the Scaffold entirely!
+    val currentSongTitle by playerViewModel.currentSongTitle.collectAsState()
+    val isPlaying by playerViewModel.isPlaying.collectAsState()
+    val currentArtistName by playerViewModel.currentArtistName.collectAsState()
+    val currentSongUrl by playerViewModel.currentSongUrl.collectAsState()
+
+    LaunchedEffect(playlistId) {
+        viewModel.loadPlaylistDetails(playlistId)
+    }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        Spacer(modifier = Modifier.height(24.dp))
+        // Top Bar with Back Button
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onNavigateBack) {
+                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+            }
+            Text(
+                text = "Playlist Details",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 8.dp)
+            )
+        }
 
-        // 1. Search Bar at the top
+        // 1. Search Bar
         OutlinedTextField(
             value = searchQuery,
-            onValueChange = { searchQuery = it },
-            placeholder = { Text("Search for Playlist, Emotion, Song", fontSize = 12.sp) },
+            onValueChange = { viewModel.onSearchQueryChange(it) },
+            placeholder = { Text("Search for Song or Artist", fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
@@ -52,61 +85,105 @@ fun PlaylistDetailScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 2. Middle Content (Takes up all remaining space with weight(1f))
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-        ) {
-            // Header Playlist
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 24.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .background(Color.LightGray.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
-                )
-                Spacer(modifier = Modifier.width(20.dp))
-                Text(
-                    text = playlistName,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
+        if (isLoading) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
-
-            // Lista Canzoni
-            LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+        } else {
+            // 2. Playlist Header & Songs
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
             ) {
-                items(songs) { song ->
-                    Row(
+                // Header Playlist
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                ) {
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToPlayer() },
-                        verticalAlignment = Alignment.CenterVertically
+                            .size(100.dp)
+                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .background(Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
                         )
-                        Spacer(modifier = Modifier.width(16.dp))
+                    }
+                    Spacer(modifier = Modifier.width(20.dp))
+                    Column {
                         Text(
-                            text = song,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium
+                            text = playlistDetail?.title ?: "Loading...",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
                         )
+                        Text(
+                            text = "Emotion: ${playlistDetail?.emotion ?: ""}",
+                            fontSize = 14.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                // Lista Canzoni
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredSongs) { song ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { 
+                                    onNavigateToPlayer(song.title, song.artist, song.url) 
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = song.title.take(1).uppercase(),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = song.title,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = song.artist,
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
 
-        // 3. MiniPlayer pinned to the bottom
-        // (Note: This automatically uses the MiniPlayer function you defined in ListeningModeScreen.kt!)
-        MiniPlayer(onClick = onNavigateToPlayer)
+        // 3. MiniPlayer
+        if (currentSongUrl.isNotEmpty()) {
+            MiniPlayer(
+                songTitle = currentSongTitle,
+                artistName = currentArtistName,
+                isPlaying = isPlaying,
+                onTogglePlay = { playerViewModel.togglePlayPause() },
+                onClick = { onNavigateToPlayer(currentSongTitle, currentArtistName, currentSongUrl) }
+            )
+        }
     }
 }
 
@@ -114,6 +191,6 @@ fun PlaylistDetailScreen(
 @Composable
 fun PlaylistDetailScreenPreview() {
     HeartMusicTheme {
-        PlaylistDetailScreen(playlistName = "My Awesome Playlist")
+        PlaylistDetailScreen(playlistId = "dummy-id")
     }
 }
