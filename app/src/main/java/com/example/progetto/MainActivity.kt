@@ -106,7 +106,8 @@ fun GlobalDrawerNavigation() {
                             Triple("Emotion analysis", Icons.Default.Analytics, "emotion_analysis"),
                             Triple("Listening Mode", Icons.Default.Headset, "listening_mode"),
                             Triple("Your feelings", Icons.Default.Favorite, "your_feelings"),
-                            Triple("Insights", Icons.Default.BarChart, "insights")
+                            Triple("Insights", Icons.Default.BarChart, "insights"),
+                            Triple("Favourite Songs", Icons.Default.LibraryMusic, "favourite_songs")
                         )
 
                         menuItems.forEach { (label, icon, route) ->
@@ -265,6 +266,11 @@ fun AppNavigation(
         }
         composable("insights") {
             InsightsScreen(
+                onOpenDrawer = onOpenDrawer
+            )
+        }
+        composable("favourite_songs") {
+            FavouriteSongsScreen(
                 onOpenDrawer = onOpenDrawer
             )
         }

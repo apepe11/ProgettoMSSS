@@ -13,6 +13,7 @@ from models import (
     EEGTrainingSample,
     WearableTrainingSample,
     SongReview,
+    Emotion
 )
 
 # Create a 'Blueprint' to hold all our URLs
@@ -590,3 +591,40 @@ def trigger_song_import():
         return jsonify({"message": "Import completed successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@api.route('/api/insights', methods=['GET'])
+def get_insights():
+    # 1. Query for APP DETECTED totals
+    # Joins ListeningSession and Emotion tables based on system_detected_emotion_id
+    app_detected_counts = db.session.query(
+        Emotion.name, db.func.count(ListeningSession.session_id)
+    ).join(ListeningSession, ListeningSession.system_detected_emotion_id == Emotion.emotion_id) \
+     .group_by(Emotion.name).all()
+
+    # 2. Query for USER EXPERIENCED totals
+    # Since user experience is stored in the SurveyResponse JSONB column, 
+    # we extract the 'emotion_id' directly from the JSON payload.
+    # Note: This assumes your Android app sends survey data like {"emotion_id": 1, ...}
+    user_experienced_counts = db.session.query(
+        Emotion.name, db.func.count(SurveyResponse.response_id)
+    ).join(
+        SurveyResponse, 
+        db.cast(SurveyResponse.answer_data['emotion_id'].astext, db.Integer) == Emotion.emotion_id
+    ).group_by(Emotion.name).all()
+
+    # 3. Calculate percentages and send it to Android as JSON
+    return jsonify({
+        "app_detected": calculate_percentages(app_detected_counts),
+        "user_experienced": calculate_percentages(user_experienced_counts)
+    })
+
+# Helper function to turn raw counts into 0.0 - 1.0 percentages
+def calculate_percentages(counts_list):
+    total = sum([count for name, count in counts_list])
+    if total == 0:
+        return {"happy": 0, "sad": 0, "calm": 0, "anxious": 0, "energetic": 0}
+    
+    # Create a dictionary of percentages
+    stats = {name.lower(): (count / total) for name, count in counts_list}
+    return stats   

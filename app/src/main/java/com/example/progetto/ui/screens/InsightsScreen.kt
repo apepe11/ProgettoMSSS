@@ -1,8 +1,11 @@
 package com.example.progetto.ui.screens
 
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,31 +14,32 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel // ADDED IMPORT
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.theme.HeartMusicTheme
+import com.example.progetto.utils.InsightsViewModel // Adjust package if your ViewModel is elsewhere
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun InsightsScreen(
-    onOpenDrawer: () -> Unit = {} // You can keep this parameter so your navigation doesn't break!
+    onOpenDrawer: () -> Unit = {}
 ) {
-    var showStatistics by remember { mutableStateOf(true) }
-    var searchQuery by remember { mutableStateOf("") }
-
-    // Removed the Scaffold entirely!
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp), // Using standard padding instead of paddingValues
+            .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Added a local title to replace the one we deleted from the TopAppBar
         Text(
             text = "Your Insights",
             fontSize = 24.sp,
@@ -46,76 +50,160 @@ fun InsightsScreen(
                 .padding(bottom = 24.dp)
         )
 
-        if (showStatistics) {
-            Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
-            ) {
-                StatisticalAnalysisContent()
-            }
-        } else {
-            FavouriteSongsContent(
-                searchQuery = searchQuery,
-                onSearchChange = { searchQuery = it }
-            )
-            Spacer(modifier = Modifier.weight(1f))
-        }
-
-        HeartButton(
-            text = if (showStatistics) "Favourite Songs" else "Statistical Analysis",
-            onClick = { showStatistics = !showStatistics },
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
+        // The Insights ViewModel and Pie Chart Content!
+        StatisticalAnalysisContent()
     }
 }
 
 @Composable
-fun StatisticalAnalysisContent() {
+fun StatisticalAnalysisContent(
+    viewModel: InsightsViewModel = viewModel()
+) {
+    val selectedFilter by viewModel.selectedFilter.collectAsState()
+    val chartData by viewModel.chartData.collectAsState()
+
+    val filterOptions = listOf("App Detected", "User Experienced")
+
     Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
 
-        // Grafico a ciambella (Donut Chart) stilizzato come nel bozzetto
+        // 1. Legend at the TOP RIGHT
+        Box(
+            modifier = Modifier.fillMaxWidth(),
+            contentAlignment = Alignment.TopEnd
+        ) {
+            Column(
+                horizontalAlignment = Alignment.Start
+            ) {
+                val legendItems = listOf(
+                    Pair(Color(0xFFFFD700), "Happy"),
+                    Pair(Color(0xFF2196F3), "Sad"),
+                    Pair(Color(0xFF4CAF50), "Calm"),
+                    Pair(Color(0xFF9C27B0), "Anxious"),
+                    Pair(Color(0xFFFF5722), "Energetic")
+                )
+
+                legendItems.forEach { (color, label) ->
+                    LegendItem(color = color, label = label)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // 2. Donut Chart in the MIDDLE (Using Geometry for Text Placement)
         Box(
             modifier = Modifier.size(200.dp),
             contentAlignment = Alignment.Center
         ) {
+            // Calculate if we have ANY data
+            val totalData = chartData.happy + chartData.energetic + chartData.sad + chartData.calm + chartData.anxious
+
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val strokeWidth = 25.dp.toPx()
-                // Esempio di segmenti colorati (come nel disegno)
-                drawArc(Color.Red, -90f, 72f, false, style = Stroke(strokeWidth, cap = StrokeCap.Round))
-                drawArc(Color.Black, -18f, 72f, false, style = Stroke(strokeWidth, cap = StrokeCap.Round))
-                drawArc(Color.Green, 54f, 36f, false, style = Stroke(strokeWidth, cap = StrokeCap.Round))
-                drawArc(Color.Blue, 90f, 72f, false, style = Stroke(strokeWidth, cap = StrokeCap.Round))
-                drawArc(Color(0xFFFFD700), 162f, 108f, false, style = Stroke(strokeWidth, cap = StrokeCap.Round))
+                val strokeWidthPx = 25.dp.toPx()
+
+                if (totalData == 0f) {
+                    // EMPTY STATE: Draw a light gray background circle if there's no data
+                    drawArc(
+                        color = Color.LightGray.copy(alpha = 0.3f),
+                        startAngle = 0f,
+                        sweepAngle = 360f,
+                        useCenter = false,
+                        style = Stroke(strokeWidthPx)
+                    )
+                } else {
+                    // Bundle data into a list to make drawing dynamic and clean
+                    val slices = listOf(
+                        chartData.happy to Color(0xFFFFD700),
+                        chartData.energetic to Color(0xFFFF5722),
+                        chartData.sad to Color(0xFF2196F3),
+                        chartData.calm to Color(0xFF4CAF50),
+                        chartData.anxious to Color(0xFF9C27B0)
+                    )
+
+                    var currentStartAngle = -90f // Start at 12 o'clock (top)
+                    val radius = size.minDimension / 2
+
+                    // Set up the paintbrush for the native text
+                    val textPaint = Paint().apply {
+                        color = android.graphics.Color.BLACK
+                        textAlign = Paint.Align.CENTER
+                        textSize = 45f // Adjust this size if you want the text larger or smaller
+                        typeface = Typeface.DEFAULT_BOLD
+                    }
+
+                    slices.forEach { (percentage, color) ->
+                        if (percentage > 0f) {
+                            val sweepAngle = percentage * 360f
+
+                            // 1. Draw the colored slice
+                            drawArc(
+                                color = color,
+                                startAngle = currentStartAngle,
+                                sweepAngle = sweepAngle,
+                                useCenter = false,
+                                style = Stroke(strokeWidthPx, cap = StrokeCap.Round)
+                            )
+
+                            // 2. Calculate the exact middle angle of THIS specific slice
+                            val midAngle = currentStartAngle + (sweepAngle / 2)
+                            val midAngleRad = Math.toRadians(midAngle.toDouble())
+
+                            // 3. Use trigonometry to find the exact X and Y coordinates on the circle line
+                            val x = (size.width / 2) + (radius * cos(midAngleRad)).toFloat()
+                            val y = (size.height / 2) + (radius * sin(midAngleRad)).toFloat()
+
+                            // 4. Draw the percentage text directly onto that X/Y coordinate
+                            drawContext.canvas.nativeCanvas.drawText(
+                                "${(percentage * 100).toInt()}%",
+                                x,
+                                y - ((textPaint.descent() + textPaint.ascent()) / 2), // Vertically centers text
+                                textPaint
+                            )
+
+                            // Move the starting point for the next slice
+                            currentStartAngle += sweepAngle
+                        }
+                    }
+                }
             }
-            // Percentuali (posizionate approssimativamente come nel bozzetto)
-            Text("20%", modifier = Modifier.align(Alignment.TopCenter).offset(y = (-30).dp), fontWeight = FontWeight.Bold)
-            Text("20%", modifier = Modifier.align(Alignment.TopEnd).offset(x = 10.dp, y = 20.dp), fontWeight = FontWeight.Bold)
-            Text("10%", modifier = Modifier.align(Alignment.CenterEnd).offset(x = 30.dp), fontWeight = FontWeight.Bold)
-            Text("10%", modifier = Modifier.align(Alignment.BottomEnd).offset(x = 10.dp, y = (-20).dp), fontWeight = FontWeight.Bold)
-            Text("30%", modifier = Modifier.align(Alignment.BottomStart).offset(x = (-10).dp, y = (-20).dp), fontWeight = FontWeight.Bold)
-            Text("20%", modifier = Modifier.align(Alignment.CenterStart).offset(x = (-30).dp), fontWeight = FontWeight.Bold)
+
+            // Draw the empty state text if there is no data
+            if (totalData == 0f) {
+                Text("No Data", color = Color.Gray, fontWeight = FontWeight.Medium)
+            }
         }
 
         Spacer(modifier = Modifier.height(40.dp))
 
-        // Legenda
-        val legendItems = listOf(
-            Pair(Color.Red, "SAD"), Pair(Color.Green, "Y"),
-            Pair(Color(0xFFFFD700), "HAPPY"), Pair(Color.Blue, "Z"),
-            Pair(Color.Cyan, "X"), Pair(Color.Black, "V")
-        )
+        // 3. Toggle Switch
+        val primaryColor = MaterialTheme.colorScheme.primary
+        val lightBackground = primaryColor.copy(alpha = 0.1f)
 
-        Column(modifier = Modifier.fillMaxWidth()) {
-            for (i in legendItems.indices step 2) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceAround
+        Row(
+            modifier = Modifier
+                .background(lightBackground, RoundedCornerShape(50))
+                .padding(4.dp)
+        ) {
+            filterOptions.forEach { option ->
+                val isSelected = selectedFilter == option
+
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .background(if (isSelected) primaryColor else Color.Transparent)
+                        .clickable { viewModel.setFilter(option) }
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
-                    LegendItem(legendItems[i].first, legendItems[i].second)
-                    LegendItem(legendItems[i+1].first, legendItems[i+1].second)
+                    Text(
+                        text = option,
+                        fontSize = 12.sp,
+                        color = if (isSelected) Color.White else Color.Black,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    )
                 }
             }
         }
@@ -124,52 +212,15 @@ fun StatisticalAnalysisContent() {
 
 @Composable
 fun LegendItem(color: Color, label: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.width(100.dp)) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .wrapContentWidth()
+            .padding(vertical = 4.dp)
+    ) {
         Box(modifier = Modifier.size(16.dp).background(color, RoundedCornerShape(2.dp)))
         Spacer(modifier = Modifier.width(8.dp))
         Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-    }
-}
-
-@Composable
-fun FavouriteSongsContent(searchQuery: String, onSearchChange: (String) -> Unit) {
-    val songs = listOf("SONG 1", "SONG 2", "SONG 3", "SONG 4", "SONG 5", "SONG 6", "SONG 7")
-
-    Column {
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchChange,
-            placeholder = { Text("Search for Playlist, Emotion, Song", fontSize = 12.sp) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 20.dp)
-                .height(50.dp),
-            shape = RoundedCornerShape(25.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.LightGray,
-                unfocusedBorderColor = Color.LightGray
-            ),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Top 10 songs",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(songs) { song ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(20.dp).border(1.dp, Color.Gray, RoundedCornerShape(2.dp)))
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(text = song, fontSize = 16.sp, color = if (song == "SONG 7") Color(0xFF9C27B0) else Color.Black)
-                }
-            }
-        }
     }
 }
 
