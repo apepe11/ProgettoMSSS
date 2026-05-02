@@ -14,7 +14,7 @@ import java.util.UUID
 /**
  * NetworkManager handles sending sensor data to the backend API
  */
-class NetworkManager(private val baseUrl: String = "http://10.0.2.2:5000") {
+class NetworkManager(private val baseUrl: String = "http://10.0.2.2:5005") {
 
     private val client = OkHttpClient()
     private val mediaType = "application/json; charset=utf-8".toMediaType()

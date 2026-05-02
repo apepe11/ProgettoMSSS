@@ -140,15 +140,16 @@ class PlayerViewModel : ViewModel() {
         _duration.value = 0
         _isPlaying.value = false
         isPreparing = true
+        _duration.value = 0 // Reset duration to prevent old progress bar state
         stopProgressUpdate()
 
         try {
             mp.reset()
-            val baseUrl = "http://10.0.2.2:5000"
+            val baseUrl = "http://10.0.2.2:5005"
             val fullUrl = when {
                 url.startsWith("http") -> url
                 url.startsWith("/") -> "$baseUrl$url"
-                else -> "$baseUrl/song/$url"
+                else -> "$baseUrl/static/music/$url" // Changed to match backend structure if just a path is given
             }
             Log.d("PlayerViewModel", "Avvio caricamento DataSource: $fullUrl")
             mp.setDataSource(fullUrl)
@@ -156,6 +157,7 @@ class PlayerViewModel : ViewModel() {
         } catch (e: Exception) {
             Log.e("PlayerViewModel", "Errore critico in playSong", e)
             isPreparing = false
+            _isPlaying.value = false
         }
     }
 

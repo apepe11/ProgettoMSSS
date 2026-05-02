@@ -31,8 +31,18 @@ with app.app_context():
     import models
     db.create_all()
 
-    # NOVITÀ: Popolamento automatico se la tabella songs è vuota
-    from models import Song
+    # NOVITÀ: Popolamento automatico se le tabelle sono vuote
+    from models import Song, Emotion, Playlist
+
+    # 1. Popolamento Emozioni
+    if Emotion.query.count() == 0:
+        print("Populating emotions...")
+        emotions = ["Happy", "Sad", "Calm", "Anxious", "Energetic"]
+        for i, name in enumerate(emotions, 1):
+            db.session.add(Emotion(emotion_id=i, name=name))
+        db.session.commit()
+
+    # 2. Popolamento Canzoni
     if Song.query.count() == 0:
         print("Database songs empty. Triggering automatic import...")
         from importer.import_songs import import_from_csv
@@ -41,6 +51,22 @@ with app.app_context():
         csv_files = list(db_dir.glob("*.csv"))
         for csv_file in csv_files:
             import_from_csv(csv_file)
+
+    # 3. Creazione Playlist di esempio (se non ce ne sono)
+    if Playlist.query.count() == 0:
+        print("Creating default playlists...")
+        happy_emotion = Emotion.query.filter_by(name="Happy").first()
+        if happy_emotion:
+            new_playlist = Playlist(
+                title="Happy Vibes",
+                target_emotion_id=happy_emotion.emotion_id
+            )
+            # Aggiungi qualche canzone a caso alla playlist
+            random_songs = Song.query.limit(5).all()
+            new_playlist.songs = random_songs
+            db.session.add(new_playlist)
+            db.session.commit()
+
 
 # 4. Run the server
 if __name__ == '__main__':

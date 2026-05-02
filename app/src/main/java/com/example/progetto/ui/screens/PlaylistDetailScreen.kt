@@ -142,6 +142,7 @@ fun PlaylistDetailScreen(
                                 .clickable { 
                                     // Aggiorniamo la playlist nel PlayerViewModel prima di navigare
                                     playerViewModel.updatePlaylist(filteredSongs, index)
+                                    playerViewModel.playSong(song.title, song.artist, song.url)
                                     onNavigateToPlayer(song.title, song.artist, song.url) 
                                 },
                             verticalAlignment = Alignment.CenterVertically

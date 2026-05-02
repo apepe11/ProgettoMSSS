@@ -228,6 +228,34 @@ def get_song_details(song_id):
         "duration": song.duration_sec
     }), 200
 
+@api.route('/api/songs', methods=['GET'])
+def get_songs():
+    """Search for songs by title or artist"""
+    query = request.args.get('q', '')
+
+    if not query:
+        # If no query, return some songs
+        songs = Song.query.limit(20).all()
+    else:
+        # Search by title or artist
+        search_filter = or_(
+            Song.title.ilike(f'%{query}%'),
+            Song.artist.ilike(f'%{query}%')
+        )
+        songs = Song.query.filter(search_filter).limit(50).all()
+
+    results = []
+    for s in songs:
+        results.append({
+            "song_id": str(s.song_id),
+            "title": s.title,
+            "artist": s.artist,
+            "url": s.file_url,
+            "duration": s.duration_sec
+        })
+
+    return jsonify({"songs": results}), 200
+
 # ==========================================
 # 4. GET USER HISTORY
 # ==========================================
@@ -700,3 +728,22 @@ def calculate_percentages(counts_list):
     # Create a dictionary of percentages
     stats = {name.lower(): (count / total) for name, count in counts_list}
     return stats   
+
+
+@api.route('/api/songs/top', methods=['GET'])
+def get_top_songs():
+    # Uniamo le canzoni con i preferiti, raggruppiamo per canzone e ordiniamo per il conteggio
+    top_songs = db.session.query(
+        Song, func.count(UserFavorite.song_id).label('likes_count')
+    ).outerjoin(UserFavorite).group_by(Song.song_id).order_by(db.desc('likes_count')).limit(10).all()
+    
+    results = []
+    for song, count in top_songs:
+        results.append({
+            "song_id": str(song.song_id),
+            "title": song.title,
+            "artist": song.artist,
+            "url": song.file_url,
+            "likes": count
+        })
+    return jsonify({"songs": results}), 200

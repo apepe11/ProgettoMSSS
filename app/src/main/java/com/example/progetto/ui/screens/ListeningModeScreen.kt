@@ -38,6 +38,7 @@ fun ListeningModeScreen(
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
     val playlists by viewModel.playlists.collectAsState()
+    val songs by viewModel.songs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     val currentSongTitle by playerViewModel.currentSongTitle.collectAsState()
@@ -74,12 +75,12 @@ fun ListeningModeScreen(
             singleLine = true
         )
 
-        // 3. Playlists List or Empty State
+        // 3. Playlists & Songs List or Empty State
         if (isLoading) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
-        } else if (playlists.isEmpty()) {
+        } else if (playlists.isEmpty() && songs.isEmpty()) {
             EmptyPlaylistsView(modifier = Modifier.weight(1f).fillMaxWidth())
         } else {
             LazyColumn(
@@ -90,37 +91,95 @@ fun ListeningModeScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 contentPadding = PaddingValues(top = 24.dp, bottom = 16.dp)
             ) {
-                items(playlists) { playlist ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onNavigateToPlaylist(playlist.playlistId) },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
+                if (playlists.isNotEmpty()) {
+                    item {
+                        Text(
+                            text = "Playlists",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    items(playlists) { playlist ->
+                        Row(
                             modifier = Modifier
-                                .size(48.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp)),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .clickable { onNavigateToPlaylist(playlist.playlistId) },
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = playlist.title,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "Emotion: ${playlist.emotion}",
+                                    fontSize = 14.sp,
+                                    color = Color.Gray
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column {
-                            Text(
-                                text = playlist.title,
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Emotion: ${playlist.emotion}",
-                                fontSize = 14.sp,
-                                color = Color.Gray
-                            )
+                    }
+                }
+
+                if (songs.isNotEmpty()) {
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Songs",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                    items(songs) { song ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    playerViewModel.playSong(song.title, song.artist, song.url)
+                                    onNavigateToPlayer(song.title, song.artist, song.url)
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = song.title.take(1).uppercase(),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column {
+                                Text(
+                                    text = song.title,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = song.artist,
+                                    fontSize = 12.sp,
+                                    color = Color.Gray
+                                )
+                            }
                         }
                     }
                 }

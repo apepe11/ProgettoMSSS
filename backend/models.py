@@ -138,3 +138,10 @@ class WearableTrainingSample(db.Model):
     subject = db.Column(db.String(255), nullable=False)
     rating = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class UserFavorite(db.Model):
+    __tablename__ = 'user_favorites'
+    user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.user_id', ondelete='CASCADE'), primary_key=True)
+    song_id = db.Column(UUID(as_uuid=True), db.ForeignKey('songs.song_id', ondelete='CASCADE'), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)

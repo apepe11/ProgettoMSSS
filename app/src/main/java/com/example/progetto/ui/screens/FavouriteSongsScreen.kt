@@ -1,11 +1,13 @@
 package com.example.progetto.ui.screens
 
-import androidx.compose.foundation.border
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,13 +15,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.progetto.ui.viewmodels.TopSongsViewModel
 
 @Composable
 fun FavouriteSongsScreen(
-    onOpenDrawer: () -> Unit = {}
+    onOpenDrawer: () -> Unit = {},
+    viewModel: TopSongsViewModel = viewModel()
 ) {
-    var searchQuery by remember { mutableStateOf("") }
-    val songs = listOf("SONG 1", "SONG 2", "SONG 3", "SONG 4", "SONG 5", "SONG 6", "SONG 7")
+    val topSongs by viewModel.topSongs.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
 
     Column(
         modifier = Modifier
@@ -36,7 +42,7 @@ fun FavouriteSongsScreen(
 
         OutlinedTextField(
             value = searchQuery,
-            onValueChange = { searchQuery = it },
+            onValueChange = { viewModel.onSearchQueryChange(it) },
             placeholder = { Text("Search for Playlist, Emotion, Song", fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -58,12 +64,43 @@ fun FavouriteSongsScreen(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(songs) { song ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(20.dp).border(1.dp, Color.Gray, RoundedCornerShape(2.dp)))
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Text(text = song, fontSize = 16.sp, color = if (song == "SONG 7") Color(0xFF9C27B0) else Color.Black)
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                items(topSongs) { song ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Icona o miniatura
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(MaterialTheme.colorScheme.primaryContainer)
+                        )
+
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(start = 16.dp)
+                        ) {
+                            Text(text = song.title, fontWeight = FontWeight.Bold)
+                            Text(text = song.artist, fontSize = 12.sp, color = Color.Gray)
+                        }
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = Color.Red,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(text = "${song.likes ?: 0}", modifier = Modifier.padding(start = 4.dp))
+                        }
+                    }
                 }
             }
         }

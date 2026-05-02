@@ -3,6 +3,7 @@ package com.example.progetto.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.progetto.data.PlaylistResponse
+import com.example.progetto.data.SongResponse
 import com.example.progetto.data.RetrofitClient
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -15,6 +16,9 @@ class ListeningViewModel : ViewModel() {
 
     private val _playlists = MutableStateFlow<List<PlaylistResponse>>(emptyList())
     val playlists: StateFlow<List<PlaylistResponse>> = _playlists
+
+    private val _songs = MutableStateFlow<List<SongResponse>>(emptyList())
+    val songs: StateFlow<List<SongResponse>> = _songs
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -34,7 +38,7 @@ class ListeningViewModel : ViewModel() {
                 .debounce(500) // Aspetta 500ms dopo l'ultimo input
                 .distinctUntilChanged()
                 .collect { query ->
-                    searchPlaylists(query)
+                    searchAll(query)
                 }
         }
     }
@@ -43,22 +47,33 @@ class ListeningViewModel : ViewModel() {
         _searchQuery.value = newQuery
     }
 
-    fun searchPlaylists(query: String) {
+    fun searchAll(query: String) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Ora usiamo il servizio specifico per le playlist
-                val response = RetrofitClient.playlistApiService.getPlaylists(query)
-                if (response.isSuccessful) {
-                    _playlists.value = response.body()?.playlists ?: emptyList()
-                } else {
-                    _playlists.value = emptyList()
+                // Ricerca Playlist
+                val playlistResponse = RetrofitClient.playlistApiService.getPlaylists(query)
+                if (playlistResponse.isSuccessful) {
+                    _playlists.value = playlistResponse.body()?.playlists ?: emptyList()
+                }
+
+                // Ricerca Canzoni
+                val songResponse = RetrofitClient.playlistApiService.getSongs(query)
+                if (songResponse.isSuccessful) {
+                    _songs.value = songResponse.body()?.songs ?: emptyList()
                 }
             } catch (e: Exception) {
+                // In caso di errore svuotiamo le liste
                 _playlists.value = emptyList()
+                _songs.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    // Mantengo per retrocompatibilità se usato altrove, ma reindirizzo a searchAll
+    fun searchPlaylists(query: String) {
+        searchAll(query)
     }
 }

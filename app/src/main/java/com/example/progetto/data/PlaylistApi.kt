@@ -16,4 +16,12 @@ interface PlaylistApi {
     suspend fun getPlaylistDetails(
         @Path("playlist_id") playlistId: String
     ): Response<PlaylistDetailResponse>
+
+    @GET("/api/songs")
+    suspend fun getSongs(
+        @Query("q") query: String? = null
+    ): Response<SongSearchResponse>
+
+    @GET("/api/songs/top")
+    suspend fun getTopSongs(): Response<SongSearchResponse>
 }
