@@ -19,13 +19,8 @@ class User(db.Model):
 class Song(db.Model):
     __tablename__ = 'songs'
     song_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    allmusic_id = db.Column(db.String(255)) # "Song" column in CSV
     title = db.Column(db.String(255), nullable=False)
     artist = db.Column(db.String(255), nullable=False)
-    quadrant = db.Column(db.String(10))     # Q1, Q2, Q3, Q4
-    pquad = db.Column(db.Float)
-    genres = db.Column(db.Text)             # "GenresStr"
-    moods = db.Column(db.Text)              # "MoodsStr"
     duration_sec = db.Column(db.Integer)
     file_url = db.Column(db.String(255), nullable=False)
 
