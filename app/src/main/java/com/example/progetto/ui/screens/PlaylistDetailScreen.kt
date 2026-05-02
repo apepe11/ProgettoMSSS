@@ -26,7 +26,7 @@ import com.example.progetto.ui.viewmodels.PlayerViewModel
 @Composable
 fun PlaylistDetailScreen(
     playlistId: String,
-    onNavigateToPlayer: (String, String, String) -> Unit = { _, _, _ -> },
+    onNavigateToPlayer: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     onNavigateBack: () -> Unit = {},
     viewModel: PlaylistViewModel = viewModel(),
     playerViewModel: PlayerViewModel = viewModel()
@@ -36,6 +36,7 @@ fun PlaylistDetailScreen(
     val filteredSongs by viewModel.filteredSongs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    val currentSongId by playerViewModel.currentSongId.collectAsState()
     val currentSongTitle by playerViewModel.currentSongTitle.collectAsState()
     val isPlaying by playerViewModel.isPlaying.collectAsState()
     val currentArtistName by playerViewModel.currentArtistName.collectAsState()
@@ -142,8 +143,8 @@ fun PlaylistDetailScreen(
                                 .clickable { 
                                     // Aggiorniamo la playlist nel PlayerViewModel prima di navigare
                                     playerViewModel.updatePlaylist(filteredSongs, index)
-                                    playerViewModel.playSong(song.title, song.artist, song.url)
-                                    onNavigateToPlayer(song.title, song.artist, song.url) 
+                                    playerViewModel.playSong(song.title, song.artist, song.url, song.songId)
+                                    onNavigateToPlayer(song.title, song.artist, song.url, song.songId) 
                                 },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -184,7 +185,7 @@ fun PlaylistDetailScreen(
                 artistName = currentArtistName,
                 isPlaying = isPlaying,
                 onTogglePlay = { playerViewModel.togglePlayPause() },
-                onClick = { onNavigateToPlayer(currentSongTitle, currentArtistName, currentSongUrl) }
+                onClick = { onNavigateToPlayer(currentSongTitle, currentArtistName, currentSongUrl, currentSongId ?: "") }
             )
         }
     }

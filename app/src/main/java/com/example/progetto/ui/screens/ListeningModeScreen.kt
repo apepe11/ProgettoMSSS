@@ -30,7 +30,7 @@ import com.example.progetto.ui.viewmodels.PlayerViewModel
 @Composable
 fun ListeningModeScreen(
     onNavigateToPlaylist: (String) -> Unit = {},
-    onNavigateToPlayer: (String, String, String) -> Unit = { _, _, _ -> },
+    onNavigateToPlayer: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     onOpenDrawer: () -> Unit = {},
     onNavigateBack: () -> Unit = {},
     viewModel: ListeningViewModel = viewModel(),
@@ -41,6 +41,7 @@ fun ListeningModeScreen(
     val songs by viewModel.songs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
+    val currentSongId by playerViewModel.currentSongId.collectAsState()
     val currentSongTitle by playerViewModel.currentSongTitle.collectAsState()
     val isPlaying by playerViewModel.isPlaying.collectAsState()
     val currentArtistName by playerViewModel.currentArtistName.collectAsState()
@@ -151,8 +152,8 @@ fun ListeningModeScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    playerViewModel.playSong(song.title, song.artist, song.url)
-                                    onNavigateToPlayer(song.title, song.artist, song.url)
+                                    playerViewModel.playSong(song.title, song.artist, song.url, song.songId)
+                                    onNavigateToPlayer(song.title, song.artist, song.url, song.songId)
                                 },
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -193,7 +194,7 @@ fun ListeningModeScreen(
                 artistName = currentArtistName,
                 isPlaying = isPlaying,
                 onTogglePlay = { playerViewModel.togglePlayPause() },
-                onClick = { onNavigateToPlayer(currentSongTitle, currentArtistName, currentSongUrl) }
+                onClick = { onNavigateToPlayer(currentSongTitle, currentArtistName, currentSongUrl, currentSongId ?: "") }
             )
         }
     }
@@ -242,7 +243,7 @@ fun MiniPlayer(
             .fillMaxWidth()
             .height(64.dp)
             .clickable { onClick() },
-        color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.9f)
+        color = MaterialTheme.colorScheme.primary
     ) {
         Row(
             modifier = Modifier

@@ -1,23 +1,38 @@
 package com.example.progetto.ui.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.progetto.data.RetrofitClient
 import com.example.progetto.data.SongResponse
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class TopSongsViewModel : ViewModel() {
 
-    private val _topSongs = MutableStateFlow<List<SongResponse>>(emptyList())
-    val topSongs: StateFlow<List<SongResponse>> = _topSongs
-
+    private val _allTopSongs = MutableStateFlow<List<SongResponse>>(emptyList())
+    
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
+
+    // Combinazione di canzoni e ricerca per filtraggio reattivo
+    val topSongs: StateFlow<List<SongResponse>> = combine(_allTopSongs, _searchQuery) { songs, query ->
+        if (query.isBlank()) {
+            songs
+        } else {
+            songs.filter { 
+                it.title.contains(query, ignoreCase = true) || 
+                it.artist.contains(query, ignoreCase = true) 
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
         loadTopSongs()
@@ -27,15 +42,18 @@ class TopSongsViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Chiamiamo l'endpoint specifico per le Top Songs
                 val response = RetrofitClient.playlistApiService.getTopSongs()
                 if (response.isSuccessful) {
-                    // Filtriamo le canzoni che hanno 0 like o nullo
                     val allSongs = response.body()?.songs ?: emptyList()
-                    _topSongs.value = allSongs.filter { (it.likes ?: 0) > 0 }
+                    Log.d("TopSongsViewModel", "Caricate ${allSongs.size} canzoni")
+                    // Solo canzoni con più di 0 like
+                    _allTopSongs.value = allSongs.filter { (it.likes ?: 0) > 0 }
+                } else {
+                    Log.e("TopSongsViewModel", "Errore API: ${response.code()}")
                 }
             } catch (e: Exception) {
-                _topSongs.value = emptyList()
+                Log.e("TopSongsViewModel", "Eccezione caricamento", e)
+                _allTopSongs.value = emptyList()
             } finally {
                 _isLoading.value = false
             }
@@ -44,9 +62,5 @@ class TopSongsViewModel : ViewModel() {
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
-        // Logica di filtraggio locale basata sulla ricerca, mantenendo solo quelle con > 0 like
-        viewModelScope.launch {
-             // In una implementazione reale, potresti voler rifare la chiamata o filtrare la lista corrente
-        }
     }
 }

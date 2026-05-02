@@ -1,6 +1,7 @@
 package com.example.progetto.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,11 +22,17 @@ import com.example.progetto.ui.viewmodels.TopSongsViewModel
 @Composable
 fun FavouriteSongsScreen(
     onOpenDrawer: () -> Unit = {},
+    onNavigateToPlayer: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     viewModel: TopSongsViewModel = viewModel()
 ) {
     val topSongs by viewModel.topSongs.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
+
+    // Refresh data when entering the screen
+    LaunchedEffect(Unit) {
+        viewModel.loadTopSongs()
+    }
 
     Column(
         modifier = Modifier
@@ -68,14 +75,19 @@ fun FavouriteSongsScreen(
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
+        } else if (topSongs.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No favourite songs yet", color = Color.Gray)
+            }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(topSongs) { song ->
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onNavigateToPlayer(song.title, song.artist, song.url, song.songId) },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Icona o miniatura
                         Box(
                             modifier = Modifier
                                 .size(40.dp)

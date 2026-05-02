@@ -18,23 +18,23 @@ fun MusicPlayerScreen(
     songTitle: String = "Unknown",
     artistName: String = "Unknown",
     songUrl: String = "",
+    songId: String = "",
     onNavigateBack: () -> Unit = {},
     viewModel: PlayerViewModel
 ) {
     val isPlaying by viewModel.isPlaying.collectAsState()
     val currentPosition by viewModel.currentPosition.collectAsState()
     val duration by viewModel.duration.collectAsState()
+    val isFavorite by viewModel.isFavorite.collectAsState()
     
     // Osserviamo i cambiamenti del titolo e artista dal ViewModel perché possono cambiare con Next/Prev
     val actualTitle by viewModel.currentSongTitle.collectAsState()
     val actualArtist by viewModel.currentArtistName.collectAsState()
     
-    var isFavorite by remember { mutableStateOf(false) }
-
     // Carichiamo la canzone solo se è diversa da quella attualmente in canna
     LaunchedEffect(songUrl) {
         if (songUrl.isNotEmpty()) {
-            viewModel.playSong(songTitle, artistName, songUrl)
+            viewModel.playSong(songTitle, artistName, songUrl, songId)
         }
     }
 
@@ -89,7 +89,7 @@ fun MusicPlayerScreen(
                     Text(text = actualArtist, style = MaterialTheme.typography.bodyLarge)
                 }
 
-                IconButton(onClick = { isFavorite = !isFavorite }) {
+                IconButton(onClick = { viewModel.toggleFavorite() }) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Favorite",

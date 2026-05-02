@@ -68,6 +68,11 @@ fun GlobalDrawerNavigation() {
     val currentUser = authViewModel.currentUser
     val username = currentUser?.username ?: "Guest"
 
+    // Sincronizza lo userId nel PlayerViewModel
+    LaunchedEffect(currentUser) {
+        playerViewModel.setUserId(currentUser?.userId)
+    }
+
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         // Se l'utente è già loggato all'avvio, mandalo alla Home direttamente
         LaunchedEffect(authViewModel.currentUser) {
@@ -264,9 +269,9 @@ fun AppNavigation(
                 onNavigateToPlaylist = { playlistId ->
                     navController.navigate("playlist_detail/$playlistId")
                 },
-                onNavigateToPlayer = { title, artist, url ->
+                onNavigateToPlayer = { title, artist, url, songId ->
                     val encodedUrl = Uri.encode(url)
-                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
+                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl&songId=$songId")
                 },
                 onNavigateBack = { navController.popBackStack() },
                 playerViewModel = playerViewModel
@@ -279,9 +284,9 @@ fun AppNavigation(
             val playlistId = backStackEntry.arguments?.getString("playlistId") ?: ""
             PlaylistDetailScreen(
                 playlistId = playlistId,
-                onNavigateToPlayer = { title, artist, url ->
+                onNavigateToPlayer = { title, artist, url, songId ->
                     val encodedUrl = Uri.encode(url)
-                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
+                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl&songId=$songId")
                 },
                 onNavigateBack = { navController.popBackStack() },
                 playerViewModel = playerViewModel
@@ -300,7 +305,11 @@ fun AppNavigation(
         }
         composable("favourite_songs") {
             FavouriteSongsScreen(
-                onOpenDrawer = onOpenDrawer
+                onOpenDrawer = onOpenDrawer,
+                onNavigateToPlayer = { title, artist, url, songId ->
+                    val encodedUrl = Uri.encode(url)
+                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl&songId=$songId")
+                }
             )
         }
         composable("emotion_analysis") {
@@ -318,20 +327,23 @@ fun AppNavigation(
             )
         }
         composable(
-            route = "player?title={title}&artist={artist}&url={url}",
+            route = "player?title={title}&artist={artist}&url={url}&songId={songId}",
             arguments = listOf(
                 navArgument("title") { defaultValue = "Unknown" },
                 navArgument("artist") { defaultValue = "Unknown" },
-                navArgument("url") { defaultValue = "" }
+                navArgument("url") { defaultValue = "" },
+                navArgument("songId") { defaultValue = "" }
             )
         ) { backStackEntry ->
             val title = backStackEntry.arguments?.getString("title") ?: "Unknown"
             val artist = backStackEntry.arguments?.getString("artist") ?: "Unknown"
             val url = backStackEntry.arguments?.getString("url") ?: ""
+            val songId = backStackEntry.arguments?.getString("songId") ?: ""
             MusicPlayerScreen(
                 songTitle = title,
                 artistName = artist,
                 songUrl = url,
+                songId = songId,
                 onNavigateBack = { navController.popBackStack() },
                 viewModel = playerViewModel
             )

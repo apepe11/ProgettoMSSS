@@ -5,7 +5,7 @@ from pathlib import Path
 import csv
 import os
 from database import db
-from sqlalchemy import or_
+from sqlalchemy import or_, func, desc
 from models import (
     ListeningSession,
     SurveyResponse,
@@ -16,7 +16,8 @@ from models import (
     WearableTrainingSample,
     SongReview,
     Song,
-    Emotion
+    Emotion,
+    UserFavorite
 )
 
 # Create a 'Blueprint' to hold all our URLs
@@ -732,18 +733,62 @@ def calculate_percentages(counts_list):
 
 @api.route('/api/songs/top', methods=['GET'])
 def get_top_songs():
-    # Uniamo le canzoni con i preferiti, raggruppiamo per canzone e ordiniamo per il conteggio
-    top_songs = db.session.query(
-        Song, func.count(UserFavorite.song_id).label('likes_count')
-    ).outerjoin(UserFavorite).group_by(Song.song_id).order_by(db.desc('likes_count')).limit(10).all()
-    
-    results = []
-    for song, count in top_songs:
-        results.append({
-            "song_id": str(song.song_id),
-            "title": song.title,
-            "artist": song.artist,
-            "url": song.file_url,
-            "likes": count
-        })
-    return jsonify({"songs": results}), 200
+    try:
+        # Uniamo le canzoni con i preferiti, raggruppiamo per ID canzone e ordiniamo per il conteggio
+        top_songs_query = db.session.query(
+            Song, func.count(UserFavorite.song_id).label('likes_count')
+        ).outerjoin(UserFavorite, Song.song_id == UserFavorite.song_id)\
+         .group_by(Song.song_id)\
+         .order_by(desc('likes_count'))\
+         .limit(20).all()
+
+        results = []
+        for song, count in top_songs_query:
+            results.append({
+                "song_id": str(song.song_id),
+                "title": song.title,
+                "artist": song.artist,
+                "url": song.file_url,
+                "likes": count
+            })
+        return jsonify({"songs": results}), 200
+    except Exception as e:
+        print(f"Error in get_top_songs: {e}")
+        return jsonify({"songs": [], "error": str(e)}), 500
+
+# ==========================================
+# 8. FAVORITES
+# ==========================================
+
+@api.route('/api/songs/<song_id>/favorite', methods=['POST'])
+def toggle_favorite(song_id):
+    data = request.get_json()
+    user_id = data.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    try:
+        # Cerchiamo se esiste già il preferito
+        fav = UserFavorite.query.filter_by(user_id=user_id, song_id=song_id).first()
+
+        if fav:
+            db.session.delete(fav)
+            db.session.commit()
+            return jsonify({"message": "Favorite removed", "is_favorite": False}), 200
+        else:
+            new_fav = UserFavorite(user_id=user_id, song_id=song_id)
+            db.session.add(new_fav)
+            db.session.commit()
+            return jsonify({"message": "Favorite added", "is_favorite": True}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/api/songs/<song_id>/favorite/<user_id>', methods=['GET'])
+def check_favorite(song_id, user_id):
+    try:
+        fav = UserFavorite.query.filter_by(user_id=user_id, song_id=song_id).first()
+        return jsonify({"is_favorite": fav is not None}), 200
+    except Exception as e:
+        return jsonify({"is_favorite": False, "error": str(e)}), 200

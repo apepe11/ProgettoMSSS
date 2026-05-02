@@ -5,6 +5,7 @@ import android.media.MediaPlayer
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.progetto.data.RetrofitClient
 import com.example.progetto.data.SongResponse
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -13,6 +14,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PlayerViewModel : ViewModel() {
+
+    private val _currentSongId = MutableStateFlow<String?>(null)
+    val currentSongId: StateFlow<String?> = _currentSongId
 
     private val _currentSongTitle = MutableStateFlow("Unknown")
     val currentSongTitle: StateFlow<String> = _currentSongTitle
@@ -31,6 +35,11 @@ class PlayerViewModel : ViewModel() {
 
     private val _duration = MutableStateFlow(0)
     val duration: StateFlow<Int> = _duration
+
+    private val _isFavorite = MutableStateFlow(false)
+    val isFavorite: StateFlow<Boolean> = _isFavorite
+
+    private var userId: String? = null
 
     private var mediaPlayer: MediaPlayer? = null
     private var progressJob: Job? = null
@@ -119,8 +128,61 @@ class PlayerViewModel : ViewModel() {
         _currentIndex = startIndex
     }
 
-    fun playSong(title: String, artist: String, url: String) {
-        Log.d("PlayerViewModel", "playSong richiesta per: $url")
+    fun setUserId(id: String?) {
+        userId = id
+    }
+
+    fun toggleFavorite() {
+        val sId = _currentSongId.value
+        val uId = userId
+        
+        Log.d("PlayerViewModel", "toggleFavorite: songId=$sId, userId=$uId")
+        
+        if (sId == null || uId == null) {
+            Log.w("PlayerViewModel", "Impossibile fare toggleFavorite: mancano ID")
+            return
+        }
+
+        // Update ottimistico della UI per feedback immediato
+        val previousState = _isFavorite.value
+        _isFavorite.value = !previousState
+
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.playlistApiService.toggleFavorite(sId, mapOf("user_id" to uId))
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    Log.d("PlayerViewModel", "toggleFavorite successo: $body")
+                    // Confermiamo lo stato dal server
+                    _isFavorite.value = (body?.get("is_favorite") == true)
+                } else {
+                    Log.e("PlayerViewModel", "toggleFavorite errore API: ${response.code()}")
+                    _isFavorite.value = previousState // Rollback in caso di errore
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Errore toggleFavorite", e)
+                _isFavorite.value = previousState // Rollback
+            }
+        }
+    }
+
+    private fun checkFavoriteStatus(sId: String, uId: String) {
+        viewModelScope.launch {
+            try {
+                val response = RetrofitClient.playlistApiService.checkFavorite(sId, uId)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    Log.d("PlayerViewModel", "checkFavoriteStatus: $body")
+                    _isFavorite.value = (body?.get("is_favorite") == true)
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Errore checkFavoriteStatus", e)
+            }
+        }
+    }
+
+    fun playSong(title: String, artist: String, url: String, songId: String? = null) {
+        Log.d("PlayerViewModel", "playSong richiesta per: $url (ID: $songId)")
         
         val mp = getOrCreateModelPlayer()
         
@@ -133,13 +195,20 @@ class PlayerViewModel : ViewModel() {
             } catch (e: Exception) {}
         }
 
+        _currentSongId.value = songId
         _currentSongTitle.value = title
         _currentArtistName.value = artist
         _currentSongUrl.value = url
         _currentPosition.value = 0
         _duration.value = 0
         _isPlaying.value = false
+        _isFavorite.value = false // Reset favorite state
         isPreparing = true
+        
+        // Check favorite status if we have both IDs
+        if (songId != null && userId != null) {
+            checkFavoriteStatus(songId, userId!!)
+        }
         _duration.value = 0 // Reset duration to prevent old progress bar state
         stopProgressUpdate()
 
@@ -166,7 +235,7 @@ class PlayerViewModel : ViewModel() {
         if (playlist.isNotEmpty() && _currentIndex < playlist.size - 1) {
             _currentIndex++
             val nextSong = playlist[_currentIndex]
-            playSong(nextSong.title, nextSong.artist, nextSong.url)
+            playSong(nextSong.title, nextSong.artist, nextSong.url, nextSong.songId)
         }
     }
 
@@ -175,7 +244,7 @@ class PlayerViewModel : ViewModel() {
         if (playlist.isNotEmpty() && _currentIndex > 0) {
             _currentIndex--
             val prevSong = playlist[_currentIndex]
-            playSong(prevSong.title, prevSong.artist, prevSong.url)
+            playSong(prevSong.title, prevSong.artist, prevSong.url, prevSong.songId)
         } else if (playlist.isNotEmpty() && _currentIndex == 0) {
             // Se è la prima canzone, ricomincia da capo
             seekTo(0)
