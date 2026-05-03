@@ -304,7 +304,12 @@ fun AppNavigation(
             )
         }
         composable("favourite_songs") {
+            // 1. Grab the real, currently logged-in user's ID from your AuthViewModel
+            // If it's null for some reason, we pass an empty string as a safe fallback
+            val currentUserId = authViewModel.currentUser?.userId ?: ""
+
             FavouriteSongsScreen(
+                currentUserId = currentUserId, // 2. Pass it into the screen right here!
                 onOpenDrawer = onOpenDrawer,
                 onNavigateToPlayer = { title, artist, url, songId ->
                     val encodedUrl = Uri.encode(url)

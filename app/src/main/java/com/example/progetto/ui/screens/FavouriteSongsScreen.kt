@@ -14,13 +14,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.TopSongsViewModel
+import com.example.progetto.utils.Song
 
+// ==========================================
+// 1. THE STATEFUL WRAPPER (Used by your App)
+// ==========================================
 @Composable
 fun FavouriteSongsScreen(
+    currentUserId: String, // <-- Added this parameter!
     onOpenDrawer: () -> Unit = {},
     onNavigateToPlayer: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     viewModel: TopSongsViewModel = viewModel()
@@ -29,14 +36,38 @@ fun FavouriteSongsScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    // Refresh data when entering the screen
-    LaunchedEffect(Unit) {
-        viewModel.loadTopSongs()
+    // Refresh data when entering the screen, specifically for this user
+    LaunchedEffect(currentUserId) {
+        viewModel.loadFavoriteSongs(currentUserId)
     }
 
+    // Pass everything down to the "dumb" UI
+    FavouriteSongsScreenContent(
+        topSongs = topSongs,
+        searchQuery = searchQuery,
+        isLoading = isLoading,
+        onSearchQueryChange = { viewModel.onSearchQueryChange(it) },
+        onNavigateToPlayer = onNavigateToPlayer,
+        onRemoveFavorite = { songId -> viewModel.toggleFavoriteOff(currentUserId, songId) }
+    )
+}
+
+// ==========================================
+// 2. THE STATELESS UI (Used by the Preview)
+// ==========================================
+@Composable
+fun FavouriteSongsScreenContent(
+    topSongs: List<Song>,
+    searchQuery: String,
+    isLoading: Boolean,
+    onSearchQueryChange: (String) -> Unit,
+    onNavigateToPlayer: (String, String, String, String) -> Unit,
+    onRemoveFavorite: (String) -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
     ) {
         Text(
@@ -49,7 +80,7 @@ fun FavouriteSongsScreen(
 
         OutlinedTextField(
             value = searchQuery,
-            onValueChange = { viewModel.onSearchQueryChange(it) },
+            onValueChange = onSearchQueryChange,
             placeholder = { Text("Search for Playlist, Emotion, Song", fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
@@ -63,13 +94,6 @@ fun FavouriteSongsScreen(
         )
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Top 10 songs",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -106,15 +130,72 @@ fun FavouriteSongsScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.Favorite,
-                                contentDescription = null,
+                                contentDescription = "Remove from favorites",
                                 tint = Color.Red,
-                                modifier = Modifier.size(16.dp)
+                                modifier = Modifier
+                                    .size(16.dp)
+                                    .clickable { onRemoveFavorite(song.songId) }
                             )
-                            Text(text = "${song.likes ?: 0}", modifier = Modifier.padding(start = 4.dp))
+
                         }
                     }
                 }
             }
         }
+    }
+}
+
+// ==========================================
+// 3. THE PREVIEWS
+// ==========================================
+
+@Preview(showBackground = true, name = "1. Populated List")
+@Composable
+fun PreviewFavouriteSongsScreen_Populated() {
+    HeartMusicTheme {
+        val mockSongs = listOf(
+            Song(songId = "1", title = "Bohemian Rhapsody", artist = "Queen", url = "", likes = 124),
+            Song(songId = "2", title = "Shape of You", artist = "Ed Sheeran", url = "", likes = 89),
+            Song(songId = "3", title = "Blinding Lights", artist = "The Weeknd", url = "", likes = 230)
+        )
+
+        FavouriteSongsScreenContent(
+            topSongs = mockSongs,
+            searchQuery = "",
+            isLoading = false,
+            onSearchQueryChange = {},
+            onNavigateToPlayer = { _, _, _, _ -> },
+            onRemoveFavorite = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "2. Loading State")
+@Composable
+fun PreviewFavouriteSongsScreen_Loading() {
+    HeartMusicTheme {
+        FavouriteSongsScreenContent(
+            topSongs = emptyList(),
+            searchQuery = "",
+            isLoading = true,
+            onSearchQueryChange = {},
+            onNavigateToPlayer = { _, _, _, _ -> },
+            onRemoveFavorite = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "3. Empty State")
+@Composable
+fun PreviewFavouriteSongsScreen_Empty() {
+    HeartMusicTheme {
+        FavouriteSongsScreenContent(
+            topSongs = emptyList(),
+            searchQuery = "",
+            isLoading = false,
+            onSearchQueryChange = {},
+            onNavigateToPlayer = { _, _, _, _ -> },
+            onRemoveFavorite = {}
+        )
     }
 }

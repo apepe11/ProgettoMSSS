@@ -1,66 +1,78 @@
 package com.example.progetto.ui.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.progetto.data.RetrofitClient
-import com.example.progetto.data.SongResponse
+import com.example.progetto.utils.NetworkManager
+import com.example.progetto.utils.Song
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class TopSongsViewModel : ViewModel() {
+    // Initialize our network manager
+    private val networkManager = NetworkManager()
 
-    private val _allTopSongs = MutableStateFlow<List<SongResponse>>(emptyList())
-    
+    // Holds the currently displayed songs (changes when user types in search bar)
+    private val _topSongs = MutableStateFlow<List<Song>>(emptyList())
+    val topSongs: StateFlow<List<Song>> = _topSongs.asStateFlow()
+
+    // Holds the full list of favorites so we don't lose them when searching
+    private var allFavoriteSongs: List<Song> = emptyList()
+
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
-    val searchQuery: StateFlow<String> = _searchQuery
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    // Combinazione di canzoni e ricerca per filtraggio reattivo
-    val topSongs: StateFlow<List<SongResponse>> = combine(_allTopSongs, _searchQuery) { songs, query ->
-        if (query.isBlank()) {
-            songs
-        } else {
-            songs.filter { 
-                it.title.contains(query, ignoreCase = true) || 
-                it.artist.contains(query, ignoreCase = true) 
-            }
-        }
-    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
-
-    init {
-        loadTopSongs()
-    }
-
-    fun loadTopSongs() {
+    /**
+     * Fetches the user's favorite songs from the database
+     */
+    fun loadFavoriteSongs(userId: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            try {
-                val response = RetrofitClient.playlistApiService.getTopSongs()
-                if (response.isSuccessful) {
-                    val allSongs = response.body()?.songs ?: emptyList()
-                    Log.d("TopSongsViewModel", "Caricate ${allSongs.size} canzoni")
-                    // Solo canzoni con più di 0 like
-                    _allTopSongs.value = allSongs.filter { (it.likes ?: 0) > 0 }
-                } else {
-                    Log.e("TopSongsViewModel", "Errore API: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                Log.e("TopSongsViewModel", "Eccezione caricamento", e)
-                _allTopSongs.value = emptyList()
-            } finally {
-                _isLoading.value = false
+
+            // Fetch from backend (already sorted newest-to-oldest by our SQL query!)
+            val songs = networkManager.getFavoriteSongs(userId)
+
+            if (songs != null) {
+                allFavoriteSongs = songs
+                _topSongs.value = allFavoriteSongs
+            }
+
+            _isLoading.value = false
+        }
+    }
+
+    /**
+     * Filters the list locally when the user types in the search bar
+     */
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+        if (query.isBlank()) {
+            _topSongs.value = allFavoriteSongs
+        } else {
+            _topSongs.value = allFavoriteSongs.filter {
+                it.title.contains(query, ignoreCase = true) ||
+                        it.artist.contains(query, ignoreCase = true)
             }
         }
     }
 
-    fun onSearchQueryChange(query: String) {
-        _searchQuery.value = query
+    /**
+     * If they click the red heart on this screen, instantly remove it from the list
+     */
+    fun toggleFavoriteOff(userId: String, songId: String) {
+        viewModelScope.launch {
+            // Send the unlike request to the database
+            val result = networkManager.toggleFavorite(userId, songId)
+
+            // If successful, remove it from the UI instantly
+            if (result.isSuccess) {
+                allFavoriteSongs = allFavoriteSongs.filter { it.songId != songId }
+                onSearchQueryChange(_searchQuery.value) // Re-apply search filter
+            }
+        }
     }
 }

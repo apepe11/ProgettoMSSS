@@ -191,6 +191,81 @@ class NetworkManager(private val baseUrl: String = "http://10.0.2.2:5005") {
             Result.failure(e)
         }
     }
+    /**
+     * Toggle a song as a favorite (Like / Unlike)
+     */
+    suspend fun toggleFavorite(userId: String, songId: String): Result<Boolean> = withContext(Dispatchers.IO) {
+        try {
+            // Build JSON payload matching the Flask backend
+            val json = JSONObject().apply {
+                put("user_id", userId)
+                put("song_id", songId)
+            }
+
+            val request = Request.Builder()
+                .url("$baseUrl/api/favorites/toggle")
+                .post(json.toString().toRequestBody(mediaType))
+                .build()
+
+            val response = client.newCall(request).execute()
+            val body = response.body?.string() ?: ""
+
+            if (response.isSuccessful) {
+                // Parse the response to see if it is now favorited (true) or unfavorited (false)
+                val responseJson = JSONObject(body)
+                val isFavorite = responseJson.optBoolean("is_favorite", false)
+                Log.d(TAG, "Toggle favorite successful: is_favorite=$isFavorite")
+                Result.success(isFavorite)
+            } else {
+                Log.e(TAG, "Toggle favorite failed: ${response.code} - $body")
+                Result.failure(Exception("HTTP ${response.code}: $body"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error toggling favorite", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Fetch the user's list of favorite songs
+     */
+    suspend fun getFavoriteSongs(userId: String): List<Song>? = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/favorites/$userId")
+            .get()
+            .build()
+
+        try {
+            val response = client.newCall(request).execute()
+
+            if (response.isSuccessful) {
+                val jsonString = response.body?.string()
+                if (jsonString != null) {
+                    val jsonArray = JSONArray(jsonString)
+                    val favoriteSongs = mutableListOf<Song>()
+
+                    for (i in 0 until jsonArray.length()) {
+                        val songJson = jsonArray.getJSONObject(i)
+                        favoriteSongs.add(
+                            Song(
+                                songId = songJson.getString("songId"),
+                                title = songJson.getString("title"),
+                                artist = songJson.getString("artist"),
+                                url = songJson.getString("url"),
+                                likes = songJson.optInt("likes", 0)
+                            )
+                        )
+                    }
+                    return@withContext favoriteSongs
+                }
+            } else {
+                Log.e(TAG, "Server error fetching favorites: ${response.code}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Network request to fetch favorites failed", e)
+        }
+        return@withContext null
+    }
 }
 data class InsightsResponse(
     val app_detected: EmotionStats,
@@ -203,4 +278,10 @@ data class EmotionStats(
     val anxious: Float = 0f,
     val energetic: Float = 0f
 )
-
+data class Song(
+    val songId: String,
+    val title: String,
+    val artist: String,
+    val url: String,
+    val likes: Int = 0
+)
