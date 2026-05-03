@@ -115,4 +115,13 @@ CREATE INDEX idx_wearable_training_samples_session_ts
 CREATE INDEX idx_wearable_training_samples_type
     ON wearable_training_samples (sensor_type);
 
+-- ==========================================
+-- 6. USER FAVORITES (LIKES)
+-- ==========================================
 
+CREATE TABLE user_favorites (
+    user_id UUID REFERENCES users (user_id) ON DELETE CASCADE,
+    song_id UUID REFERENCES songs (song_id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, song_id)
+);

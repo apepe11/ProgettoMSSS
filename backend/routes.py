@@ -5,7 +5,7 @@ from pathlib import Path
 import csv
 import os
 from database import db
-from sqlalchemy import or_, func, desc
+from sqlalchemy import or_, func, desc, text
 from models import (
     ListeningSession,
     SurveyResponse,
@@ -756,39 +756,66 @@ def get_top_songs():
         print(f"Error in get_top_songs: {e}")
         return jsonify({"songs": [], "error": str(e)}), 500
 
-# ==========================================
-# 8. FAVORITES
-# ==========================================
 
-@api.route('/api/songs/<song_id>/favorite', methods=['POST'])
-def toggle_favorite(song_id):
-    data = request.get_json()
+@api.route('/api/favorites/toggle', methods=['POST'])
+def toggle_favorite():
+    data = request.json
     user_id = data.get('user_id')
+    song_id = data.get('song_id')
 
-    if not user_id:
-        return jsonify({"error": "user_id is required"}), 400
+    if not user_id or not song_id:
+        return jsonify({"error": "Missing user_id or song_id"}), 400
 
     try:
-        # Cerchiamo se esiste già il preferito
-        fav = UserFavorite.query.filter_by(user_id=user_id, song_id=song_id).first()
+        # Check if the favorite already exists
+        check_query = text("SELECT * FROM user_favorites WHERE user_id = :u_id AND song_id = :s_id")
+        result = db.session.execute(check_query, {"u_id": user_id, "s_id": song_id}).fetchone()
 
-        if fav:
-            db.session.delete(fav)
+        if result:
+            # It exists! This means the user is UN-LIKING the song
+            delete_query = text("DELETE FROM user_favorites WHERE user_id = :u_id AND song_id = :s_id")
+            db.session.execute(delete_query, {"u_id": user_id, "s_id": song_id})
             db.session.commit()
-            return jsonify({"message": "Favorite removed", "is_favorite": False}), 200
+            return jsonify({"message": "Song removed from favorites", "is_favorite": False}), 200
         else:
-            new_fav = UserFavorite(user_id=user_id, song_id=song_id)
-            db.session.add(new_fav)
+            # It doesn't exist! This means the user is LIKING the song
+            insert_query = text("INSERT INTO user_favorites (user_id, song_id) VALUES (:u_id, :s_id)")
+            db.session.execute(insert_query, {"u_id": user_id, "s_id": song_id})
             db.session.commit()
-            return jsonify({"message": "Favorite added", "is_favorite": True}), 201
+            return jsonify({"message": "Song added to favorites", "is_favorite": True}), 201
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
-@api.route('/api/songs/<song_id>/favorite/<user_id>', methods=['GET'])
-def check_favorite(song_id, user_id):
+
+# 2. GET USER'S FAVORITE SONGS
+@api.route('/api/favorites/<user_id>', methods=['GET'])
+def get_user_favorites(user_id):
     try:
-        fav = UserFavorite.query.filter_by(user_id=user_id, song_id=song_id).first()
-        return jsonify({"is_favorite": fav is not None}), 200
+        # Join the songs table with the user_favorites table to get full song details
+        query = text("""
+            SELECT s.song_id, s.title, s.artist, s.file_url 
+            FROM songs s
+            JOIN user_favorites uf ON s.song_id = uf.song_id
+            WHERE uf.user_id = :u_id
+            ORDER BY uf.created_at DESC
+        """)
+        
+        results = db.session.execute(query, {"u_id": user_id}).fetchall()
+        
+        # Format the data into a JSON list
+        favorite_songs = []
+        for row in results:
+            favorite_songs.append({
+                "songId": str(row.song_id),
+                "title": row.title,
+                "artist": row.artist,
+                "url": row.file_url,
+                "likes": 1 # You can update this later if you want total global likes
+            })
+            
+        return jsonify(favorite_songs), 200
+
     except Exception as e:
-        return jsonify({"is_favorite": False, "error": str(e)}), 200
+        return jsonify({"error": str(e)}), 500
