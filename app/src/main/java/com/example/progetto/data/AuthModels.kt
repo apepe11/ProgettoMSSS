@@ -43,6 +43,7 @@ data class ErrorResponse(
  */
 data class SongReviewRequest(
     @SerializedName("user_id") val userId: String,
+    @SerializedName("session_id") val sessionId: String? = null,
     val valence: Int,
     val arousal: Int,
     val description: String,
@@ -51,6 +52,7 @@ data class SongReviewRequest(
 
 data class SongReviewResponse(
     @SerializedName("review_id") val reviewId: String,
+    @SerializedName("session_id") val sessionId: String?,
     val valence: Int,
     val arousal: Int,
     val description: String,

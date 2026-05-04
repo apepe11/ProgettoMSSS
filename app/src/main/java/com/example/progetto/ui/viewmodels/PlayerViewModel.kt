@@ -6,9 +6,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.progetto.data.RetrofitClient
+import com.example.progetto.data.BackendUrlProvider
 import com.example.progetto.data.SongResponse
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -186,13 +189,9 @@ class PlayerViewModel : ViewModel() {
         
         val mp = getOrCreateModelPlayer()
         
-        if (_currentSongUrl.value == url && (_isPlaying.value || isPreparing)) {
-            try {
-                if (mp.isPlaying) {
-                    Log.d("PlayerViewModel", "La canzone è già in riproduzione, salto il caricamento")
-                    return
-                }
-            } catch (e: Exception) {}
+        if (_currentSongUrl.value == url && (isPreparing || _isPlaying.value)) {
+            Log.d("PlayerViewModel", "La canzone è già in caricamento o in riproduzione, salto il reload")
+            return
         }
 
         _currentSongId.value = songId
@@ -212,21 +211,25 @@ class PlayerViewModel : ViewModel() {
         _duration.value = 0 // Reset duration to prevent old progress bar state
         stopProgressUpdate()
 
-        try {
-            mp.reset()
-            val baseUrl = "http://10.0.2.2:5005"
-            val fullUrl = when {
-                url.startsWith("http") -> url
-                url.startsWith("/") -> "$baseUrl$url"
-                else -> "$baseUrl/static/music/$url" // Changed to match backend structure if just a path is given
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                mp.reset()
+                val baseUrl = BackendUrlProvider.getBaseUrl().removeSuffix("/")
+                val fullUrl = when {
+                    url.startsWith("http") -> url
+                    url.startsWith("/") -> "$baseUrl$url"
+                    else -> "$baseUrl/static/music/$url" // Changed to match backend structure if just a path is given
+                }
+                Log.d("PlayerViewModel", "Avvio caricamento DataSource: $fullUrl")
+                mp.setDataSource(fullUrl)
+                withContext(Dispatchers.Main) {
+                    mp.prepareAsync()
+                }
+            } catch (e: Exception) {
+                Log.e("PlayerViewModel", "Errore critico in playSong", e)
+                isPreparing = false
+                _isPlaying.value = false
             }
-            Log.d("PlayerViewModel", "Avvio caricamento DataSource: $fullUrl")
-            mp.setDataSource(fullUrl)
-            mp.prepareAsync()
-        } catch (e: Exception) {
-            Log.e("PlayerViewModel", "Errore critico in playSong", e)
-            isPreparing = false
-            _isPlaying.value = false
         }
     }
 

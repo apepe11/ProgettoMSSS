@@ -19,6 +19,14 @@ data class SensorReading(
     val channel: Int = 0  // for EEG channels
 )
 
+data class SensorCollectionStatus(
+    val heartRateRegistered: Boolean,
+    val edaRegistered: Boolean
+) {
+    val hasAnySignal: Boolean
+        get() = heartRateRegistered || edaRegistered
+}
+
 /**
  * SensorManager handles real-time collection of:
  * - Heart Rate (HR) from wearable
@@ -53,18 +61,21 @@ class SensorManager(private val context: Context) : SensorEventListener {
         private const val SENSOR_TYPE_EDA = 28  // Generic sensor ID for EDA
     }
     
-    fun startCollecting() {
+    fun startCollecting(): SensorCollectionStatus {
         Log.d(TAG, "Starting sensor collection")
-        isCollecting = true
         heartRateBuffer.clear()
         edaBuffer.clear()
         eegBuffer.clear()
+
+        var heartRateRegistered = false
+        var edaRegistered = false
         
         // Register Heart Rate sensor
         heartRateSensor = androidSensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
         heartRateSensor?.let {
             androidSensorManager.registerListener(this, it, AndroidSensorManager.SENSOR_DELAY_FASTEST)
             Log.d(TAG, "Heart Rate sensor registered")
+            heartRateRegistered = true
         } ?: Log.w(TAG, "Heart Rate sensor not available")
         
         // Register EDA sensor (if available)
@@ -72,7 +83,15 @@ class SensorManager(private val context: Context) : SensorEventListener {
         edaSensor?.let {
             androidSensorManager.registerListener(this, it, AndroidSensorManager.SENSOR_DELAY_FASTEST)
             Log.d(TAG, "EDA sensor registered")
+            edaRegistered = true
         } ?: Log.w(TAG, "EDA sensor not available")
+
+        isCollecting = heartRateRegistered || edaRegistered
+        Log.d(TAG, "Collection status: heartRate=$heartRateRegistered, eda=$edaRegistered, active=$isCollecting")
+        return SensorCollectionStatus(
+            heartRateRegistered = heartRateRegistered,
+            edaRegistered = edaRegistered
+        )
     }
     
     fun stopCollecting() {
@@ -84,6 +103,11 @@ class SensorManager(private val context: Context) : SensorEventListener {
     fun getHeartRateBuffer(): List<SensorReading> = heartRateBuffer.toList()
     fun getEdaBuffer(): List<SensorReading> = edaBuffer.toList()
     fun getEegBuffer(): List<SensorReading> = eegBuffer.toList()
+
+    fun hasAvailableSignalSensors(): Boolean =
+        SensorAvailability.hasEmotionSensors(context)
+
+    fun isCollecting(): Boolean = isCollecting
     
     fun clearBuffers() {
         heartRateBuffer.clear()

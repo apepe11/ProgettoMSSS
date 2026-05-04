@@ -1,7 +1,13 @@
 package com.example.progetto
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image as ComposeImage
@@ -16,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -29,8 +36,10 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.core.content.ContextCompat
 import com.example.progetto.ui.screens.*
 import com.example.progetto.ui.theme.HeartMusicTheme
+import com.example.progetto.utils.SensorAvailability
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 import kotlinx.coroutines.launch
@@ -54,11 +63,14 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalDrawerNavigation() {
+    EnsureRuntimePermissions()
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val authViewModel: AuthViewModel = viewModel()
     val playerViewModel: PlayerViewModel = viewModel()
+    val context = LocalContext.current
 
     // Track current route to know when to show the top menu
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -109,7 +121,7 @@ fun GlobalDrawerNavigation() {
                         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        val menuItems = listOf(
+                        val allMenuItems = listOf(
                             Triple("Emotion analysis", Icons.Default.Analytics, "emotion_analysis"),
                             Triple("Listening Mode", Icons.Default.Headset, "listening_mode"),
                             Triple("Your feelings", Icons.Default.Favorite, "your_feelings"),
@@ -117,11 +129,19 @@ fun GlobalDrawerNavigation() {
                             Triple("Favourite Songs", Icons.Default.LibraryMusic, "favourite_songs")
                         )
 
-                        menuItems.forEach { (label, icon, route) ->
+                        allMenuItems.forEach { (label, icon, route) ->
                             NavigationDrawerItem(
                                 label = { Text(label) },
                                 selected = false,
                                 onClick = {
+                                    if (route == "emotion_analysis" && !SensorAvailability.hasEmotionSensors(context)) {
+                                        Toast.makeText(
+                                            context,
+                                            "Connect ECG/HR sensors to use Emotion Analysis.",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        return@NavigationDrawerItem
+                                    }
                                     scope.launch { drawerState.close() }
                                     navController.navigate(route) {
                                         popUpTo("home") { saveState = true }
@@ -208,6 +228,34 @@ fun GlobalDrawerNavigation() {
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun EnsureRuntimePermissions() {
+    val context = LocalContext.current
+    val requiredPermissions = remember {
+        buildList {
+            add(Manifest.permission.BODY_SENSORS)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+        }
+    }
+
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { }
+    )
+
+    LaunchedEffect(Unit) {
+        val missingPermissions = requiredPermissions.filter { permission ->
+            ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isNotEmpty()) {
+            launcher.launch(missingPermissions.toTypedArray())
         }
     }
 }
@@ -321,14 +369,20 @@ fun AppNavigation(
             EmotionAnalysisScreen(
                 onOpenDrawer = onOpenDrawer,
                 onReviewSong = { navController.navigate("review_emotion") },
-                onGoOn = { /* Handled internally in screen */ }
+                onGoOn = { /* Handled internally in screen */ },
+                onPlaySong = { title, artist, url ->
+                    val encodedUrl = Uri.encode(url)
+                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
+                },
+                authViewModel = authViewModel
             )
         }
         composable("review_emotion") {
             ReviewEmotionScreen(
                 onOpenDrawer = onOpenDrawer,
                 onNavigateBack = { navController.popBackStack() },
-                onSaveFeeling = { navController.popBackStack() }
+                onSaveFeeling = { navController.popBackStack() },
+                authViewModel = authViewModel
             )
         }
         composable(

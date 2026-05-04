@@ -1,5 +1,6 @@
 package com.example.progetto.ui.viewmodels
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,6 +21,10 @@ class FeelingViewModel : ViewModel() {
     var uiState by mutableStateOf<FeelingUiState>(FeelingUiState.Loading)
         private set
 
+    companion object {
+        private const val TAG = "FeelingViewModel"
+    }
+
     fun loadReviews(userId: String) {
         viewModelScope.launch {
             uiState = FeelingUiState.Loading
@@ -36,17 +41,31 @@ class FeelingViewModel : ViewModel() {
         }
     }
 
-    fun saveReview(userId: String, valence: Int, arousal: Int, description: String, detectedEmotion: String?, onComplete: () -> Unit) {
+    fun saveReview(
+        userId: String,
+        sessionId: String?,
+        valence: Int,
+        arousal: Int,
+        description: String,
+        detectedEmotion: String?,
+        onComplete: () -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val request = SongReviewRequest(userId, valence, arousal, description, detectedEmotion)
+                val request = SongReviewRequest(userId, sessionId, valence, arousal, description, detectedEmotion)
                 val response = RetrofitClient.authApiService.saveReview(request)
                 if (response.isSuccessful) {
+                    Log.d(TAG, "Review saved successfully")
                     loadReviews(userId)
                     onComplete()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e(TAG, "Failed to save review: ${response.code()} ${response.message()} body=$errorBody")
+                    uiState = FeelingUiState.Error("Failed to save feelings")
                 }
             } catch (e: Exception) {
-                // Handle error
+                Log.e(TAG, "Network error saving review", e)
+                uiState = FeelingUiState.Error("Network error: ${e.localizedMessage}")
             }
         }
     }

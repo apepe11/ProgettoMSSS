@@ -8,11 +8,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.progetto.ui.theme.HeartMusicTheme
+import com.example.progetto.utils.SensorAvailability
+import kotlinx.coroutines.delay
 
 @Composable
 fun HomeScreen(
@@ -20,7 +23,17 @@ fun HomeScreen(
     onNavigateToEmotionAnalysis: () -> Unit = {},
     onNavigateToListeningMode: () -> Unit = {}
 ) {
-    var isDeviceConnected by remember { mutableStateOf(true) }
+    val context = LocalContext.current
+    var sensorsAvailable by remember {
+        mutableStateOf(SensorAvailability.hasEmotionSensors(context))
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            sensorsAvailable = SensorAvailability.hasEmotionSensors(context)
+            delay(3000)
+        }
+    }
 
     // Removed the Scaffold and TopAppBar entirely!
     Column(
@@ -37,10 +50,18 @@ fun HomeScreen(
         ) {
             ModeButton(
                 title = "Emotion Analysis",
-                subtitle = if (isDeviceConnected) "Device detected" else "Connect device to start",
-                isEnabled = isDeviceConnected,
+                subtitle = "Analyze your feelings with music",
+                isEnabled = sensorsAvailable,
                 onClick = onNavigateToEmotionAnalysis
             )
+
+            if (!sensorsAvailable) {
+                Text(
+                    text = "Connect ECG/HR sensors to enable Emotion Analysis.",
+                    color = Color.Gray,
+                    fontSize = 12.sp
+                )
+            }
 
             ModeButton(
                 title = "Listening Mode",

@@ -1,6 +1,7 @@
 package com.example.progetto.utils
 
 import android.util.Log
+import com.example.progetto.data.BackendUrlProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -14,7 +15,7 @@ import java.util.UUID
 /**
  * NetworkManager handles sending sensor data to the backend API
  */
-class NetworkManager(private val baseUrl: String = "http://10.0.2.2:5005") {
+class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl().removeSuffix("/")) {
 
     private val client = OkHttpClient()
     private val mediaType = "application/json; charset=utf-8".toMediaType()
@@ -266,7 +267,57 @@ class NetworkManager(private val baseUrl: String = "http://10.0.2.2:5005") {
         }
         return@withContext null
     }
+
+    /**
+     * Fetch songs from backend (for Emotion Analysis screen)
+     */
+    suspend fun getSongs(): List<SongData> = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url("$baseUrl/api/songs")
+            .get()
+            .build()
+
+        try {
+            val response = client.newCall(request).execute()
+
+            if (response.isSuccessful) {
+                val jsonString = response.body?.string()
+                if (jsonString != null) {
+                    val json = JSONObject(jsonString)
+                    val songsArray = json.getJSONArray("songs")
+                    val songs = mutableListOf<SongData>()
+
+                    for (i in 0 until songsArray.length()) {
+                        val songObj = songsArray.getJSONObject(i)
+                        songs.add(
+                            SongData(
+                                song_id = songObj.optString("song_id", ""),
+                                title = songObj.optString("title", "Unknown"),
+                                artist = songObj.optString("artist", "Unknown"),
+                                album = songObj.optString("album", ""),
+                                url = songObj.optString("url", "")
+                            )
+                        )
+                    }
+                    Log.d(TAG, "Fetched ${songs.size} songs from backend")
+                    return@withContext songs
+                }
+            } else {
+                Log.e(TAG, "Failed to fetch songs: ${response.code}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching songs", e)
+        }
+        return@withContext emptyList()
+    }
 }
+data class SongData(
+    val song_id: String,
+    val title: String,
+    val artist: String,
+    val album: String,
+    val url: String
+)
 data class InsightsResponse(
     val app_detected: EmotionStats,
     val user_experienced: EmotionStats

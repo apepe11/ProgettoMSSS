@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.progetto.data.UserPreferences
 import kotlinx.coroutines.launch
 import java.util.UUID
 
@@ -19,6 +20,7 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
     
     private val sensorManager = SensorManager(context)
     private val networkManager = NetworkManager()
+    private val userPreferences = UserPreferences(context)
     
     private var currentSessionId: UUID? = null
     private var isSessionActive = false
@@ -36,12 +38,20 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
                 // Create session on backend
                 val sessionId = UUID.randomUUID()  // In production, create via backend API
                 currentSessionId = sessionId
-                isSessionActive = true
+                userPreferences.saveLastSessionId(sessionId.toString())
                 
                 Log.d(TAG, "Starting listening session: $sessionId")
                 
                 // Start sensor collection
-                sensorManager.startCollecting()
+                val status = sensorManager.startCollecting()
+                if (!status.hasAnySignal) {
+                    Log.w(TAG, "No wearable signal sensors available, session will not activate")
+                    currentSessionId = null
+                    return@launch
+                }
+
+                isSessionActive = true
+                Log.d(TAG, "Session active with sensors: hr=${status.heartRateRegistered}, eda=${status.edaRegistered}")
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Error starting session", e)
@@ -65,6 +75,7 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
                 // Stop sensor collection
                 sensorManager.stopCollecting()
                 isSessionActive = false
+                userPreferences.clearLastSessionId()
                 
                 // Get collected data
                 val hrData = sensorManager.getHeartRateBuffer()

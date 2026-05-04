@@ -1,5 +1,6 @@
 package com.example.progetto.ui.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.progetto.data.PlaylistResponse
@@ -52,17 +53,30 @@ class ListeningViewModel : ViewModel() {
             _isLoading.value = true
             try {
                 // Ricerca Playlist
+                Log.d("ListeningVM", "Fetching playlists with query='$query'")
                 val playlistResponse = RetrofitClient.playlistApiService.getPlaylists(query)
+                Log.d("ListeningVM", "Playlist response code: ${playlistResponse.code()}, successful: ${playlistResponse.isSuccessful}")
                 if (playlistResponse.isSuccessful) {
-                    _playlists.value = playlistResponse.body()?.playlists ?: emptyList()
+                    val playlists = playlistResponse.body()?.playlists ?: emptyList()
+                    Log.d("ListeningVM", "Got ${playlists.size} playlists")
+                    _playlists.value = playlists
+                } else {
+                    Log.e("ListeningVM", "Playlist error: ${playlistResponse.errorBody()?.string()}")
                 }
 
                 // Ricerca Canzoni
+                Log.d("ListeningVM", "Fetching songs with query='$query'")
                 val songResponse = RetrofitClient.playlistApiService.getSongs(query)
+                Log.d("ListeningVM", "Song response code: ${songResponse.code()}, successful: ${songResponse.isSuccessful}")
                 if (songResponse.isSuccessful) {
-                    _songs.value = songResponse.body()?.songs ?: emptyList()
+                    val songs = songResponse.body()?.songs ?: emptyList()
+                    Log.d("ListeningVM", "Got ${songs.size} songs")
+                    _songs.value = songs
+                } else {
+                    Log.e("ListeningVM", "Song error: ${songResponse.errorBody()?.string()}")
                 }
             } catch (e: Exception) {
+                Log.e("ListeningVM", "Exception during search: ${e.message}", e)
                 // In caso di errore svuotiamo le liste
                 _playlists.value = emptyList()
                 _songs.value = emptyList()

@@ -1,6 +1,7 @@
 package com.example.progetto.ui.viewmodels
 
 import android.app.Application
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -20,6 +21,7 @@ sealed class LoginUiState {
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val userPreferences = UserPreferences(application)
+    private val TAG = "AuthViewModel"
 
     // Questo è lo stato che la UI osserverà per il login/reg
     var uiState by mutableStateOf<LoginUiState>(LoginUiState.Idle)
@@ -42,23 +44,30 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     fun login(email: String, password: String) {
         viewModelScope.launch {
             uiState = LoginUiState.Loading
+            Log.d(TAG, "Login attempt started for email: $email")
 
             try {
                 // Rimuoviamo eventuali spazi o "a capo" dalla password
                 val cleanPassword = password.trim()
                 val request = LoginRequest(email.trim(), cleanPassword)
+                Log.d(TAG, "Sending login request: $request")
                 val response = RetrofitClient.authApiService.login(request)
+                Log.d(TAG, "Login response received: code=${response.code()}, isSuccessful=${response.isSuccessful}")
 
                 if (response.isSuccessful && response.body() != null) {
                     val loginResponse = response.body()!!
+                    Log.d(TAG, "Login successful: user_id=${loginResponse.userId}, username=${loginResponse.username}")
                     currentUser = loginResponse
                     // Salva l'utente permanentemente
                     userPreferences.saveUser(loginResponse.userId, loginResponse.username ?: "")
                     uiState = LoginUiState.Success(loginResponse)
                 } else {
+                    val errorBody = response.errorBody()?.string() ?: "Unknown error"
+                    Log.w(TAG, "Login failed: ${response.code()} - $errorBody")
                     uiState = LoginUiState.Error("Email o password errati")
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "Login exception: ${e.message}", e)
                 uiState = LoginUiState.Error("Errore di connessione: ${e.localizedMessage}")
             }
         }

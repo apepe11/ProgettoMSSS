@@ -680,6 +680,7 @@ def save_song_review():
     try:
         new_review = SongReview(
             user_id=data.get('user_id'),
+            session_id=data.get('session_id'),
             valence=int(data.get('valence')),
             arousal=int(data.get('arousal')),
             description=data.get('description'),
@@ -704,6 +705,7 @@ def get_user_reviews(user_id):
     for r in reviews:
         review_list.append({
             "review_id": str(r.review_id),
+            "session_id": str(r.session_id) if r.session_id else None,
             "valence": r.valence,
             "arousal": r.arousal,
             "description": r.description,

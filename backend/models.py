@@ -94,6 +94,7 @@ class SongReview(db.Model):
     __tablename__ = 'song_reviews'
     review_id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = db.Column(UUID(as_uuid=True), db.ForeignKey('users.user_id', ondelete='CASCADE'), nullable=False)
+    session_id = db.Column(UUID(as_uuid=True), db.ForeignKey('listening_sessions.session_id', ondelete='SET NULL'))
     valence = db.Column(db.Integer, nullable=False) # Parametro 1 (Slider)
     arousal = db.Column(db.Integer, nullable=False) # Parametro 2 (Slider)
     description = db.Column(db.Text)                # Descrizione (Stringa)

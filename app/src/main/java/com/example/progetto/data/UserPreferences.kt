@@ -15,15 +15,29 @@ class UserPreferences(private val context: Context) {
     companion object {
         val USER_ID = stringPreferencesKey("user_id")
         val USERNAME = stringPreferencesKey("username")
+        val LAST_SESSION_ID = stringPreferencesKey("last_session_id")
     }
 
     val userId: Flow<String?> = context.dataStore.data.map { it[USER_ID] }
     val username: Flow<String?> = context.dataStore.data.map { it[USERNAME] }
+    val lastSessionId: Flow<String?> = context.dataStore.data.map { it[LAST_SESSION_ID] }
 
     suspend fun saveUser(userId: String, username: String) {
         context.dataStore.edit { prefs ->
             prefs[USER_ID] = userId
             prefs[USERNAME] = username
+        }
+    }
+
+    suspend fun saveLastSessionId(sessionId: String) {
+        context.dataStore.edit { prefs ->
+            prefs[LAST_SESSION_ID] = sessionId
+        }
+    }
+
+    suspend fun clearLastSessionId() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(LAST_SESSION_ID)
         }
     }
 

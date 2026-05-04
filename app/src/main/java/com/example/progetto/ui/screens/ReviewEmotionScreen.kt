@@ -11,15 +11,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import android.app.Application
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.theme.HeartMusicTheme
+import com.example.progetto.ui.viewmodels.AuthViewModel
+import com.example.progetto.ui.viewmodels.FeelingViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.progetto.data.UserPreferences
+import kotlinx.coroutines.flow.first
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewEmotionScreen(
     onOpenDrawer: () -> Unit = {}, // You can actually delete this parameter later if this screen doesn't use it directly anymore!
     onNavigateBack: () -> Unit = {},
-    onSaveFeeling: () -> Unit = {}
+    onSaveFeeling: () -> Unit = {},
+    authViewModel: AuthViewModel,
+    feelingViewModel: FeelingViewModel = viewModel()
 ) {
     // 1. Dropdown State Variables
     val emotionsList = listOf("Happy", "Sad", "Anxious", "Calm", "Energetic")
@@ -29,6 +39,21 @@ fun ReviewEmotionScreen(
     // Other State Variables
     var strengthValue by remember { mutableFloatStateOf(0.5f) }
     var description by remember { mutableStateOf("") }
+    var errorText by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    val userId = authViewModel.currentUser?.userId
+    val sessionId by produceState<String?>(initialValue = null, key1 = userId) {
+        val prefs = UserPreferences(context)
+        value = prefs.lastSessionId.first()
+    }
+    val valenceByEmotion = mapOf(
+        "Happy" to 8,
+        "Sad" to 2,
+        "Anxious" to 3,
+        "Calm" to 6,
+        "Energetic" to 7
+    )
 
     // OUTER COLUMN: Holds everything. Notice the Scaffold is completely gone!
     Column(
@@ -147,8 +172,40 @@ fun ReviewEmotionScreen(
             )
             HeartButton(
                 text = "Save feeling",
-                onClick = onSaveFeeling,
+                onClick = {
+                    val resolvedUserId = userId
+                    if (resolvedUserId.isNullOrBlank()) {
+                        errorText = "Missing user session. Please log in again."
+                        return@HeartButton
+                    }
+                    if (selectedEmotion.isBlank()) {
+                        errorText = "Select an emotion before saving."
+                        return@HeartButton
+                    }
+                    val valence = valenceByEmotion[selectedEmotion] ?: 5
+                    val arousal = (strengthValue * 10f).roundToInt().coerceIn(0, 10)
+                    errorText = null
+                    feelingViewModel.saveReview(
+                        userId = resolvedUserId,
+                        sessionId = sessionId,
+                        valence = valence,
+                        arousal = arousal,
+                        description = description,
+                        detectedEmotion = selectedEmotion
+                    ) {
+                        onSaveFeeling()
+                    }
+                },
                 modifier = Modifier.weight(1f)
+            )
+        }
+
+        errorText?.let { message ->
+            Text(
+                text = message,
+                color = Color.Red,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(top = 4.dp)
             )
         }
     }
@@ -158,6 +215,8 @@ fun ReviewEmotionScreen(
 @Composable
 fun ReviewEmotionScreenPreview() {
     HeartMusicTheme {
-        ReviewEmotionScreen()
+        val context = LocalContext.current
+        val authViewModel = remember { AuthViewModel(context.applicationContext as Application) }
+        ReviewEmotionScreen(authViewModel = authViewModel)
     }
 }
