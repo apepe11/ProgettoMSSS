@@ -214,20 +214,63 @@ def get_playlist_details(playlist_id):
         "songs": song_list
     }), 200
 
-@api.route('/api/songs/<uuid:song_id>', methods=['GET'])
+@api.route('/api/songs/<string:song_id>', methods=['GET'], strict_slashes=False)
 def get_song_details(song_id):
     """Get details for a single song"""
-    song = Song.query.get(song_id)
-    if not song:
-        return jsonify({"error": "Song not found"}), 404
+    try:
+        song = Song.query.get(song_id)
+        if not song:
+            return jsonify({"error": "Song not found"}), 404
 
-    return jsonify({
-        "song_id": str(song.song_id),
-        "title": song.title,
-        "artist": song.artist,
-        "url": song.file_url,
-        "duration": song.duration_sec
-    }), 200
+        return jsonify({
+            "song_id": str(song.song_id),
+            "title": song.title,
+            "artist": song.artist,
+            "url": song.file_url,
+            "duration": song.duration_sec
+        }), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+@api.route('/api/songs/<string:song_id>/favorite', methods=['POST'], strict_slashes=False)
+def toggle_favorite_song(song_id):
+    data = request.json
+    user_id = data.get('user_id')
+
+    if not user_id:
+        return jsonify({"error": "Missing user_id"}), 400
+
+    try:
+        # Check if the favorite already exists
+        check_query = text("SELECT * FROM user_favorites WHERE user_id = :u_id AND song_id = :s_id")
+        result = db.session.execute(check_query, {"u_id": user_id, "s_id": song_id}).fetchone()
+
+        if result:
+            # It exists! This means the user is UN-LIKING the song
+            delete_query = text("DELETE FROM user_favorites WHERE user_id = :u_id AND song_id = :s_id")
+            db.session.execute(delete_query, {"u_id": user_id, "s_id": song_id})
+            db.session.commit()
+            return jsonify({"message": "Song removed from favorites", "is_favorite": False}), 200
+        else:
+            # It doesn't exist! This means the user is LIKING the song
+            insert_query = text("INSERT INTO user_favorites (user_id, song_id) VALUES (:u_id, :s_id)")
+            db.session.execute(insert_query, {"u_id": user_id, "s_id": song_id})
+            db.session.commit()
+            return jsonify({"message": "Song added to favorites", "is_favorite": True}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+@api.route('/api/songs/<string:song_id>/favorite/<string:user_id>', methods=['GET'], strict_slashes=False)
+def check_song_favorite(song_id, user_id):
+    try:
+        check_query = text("SELECT * FROM user_favorites WHERE user_id = :u_id AND song_id = :s_id")
+        result = db.session.execute(check_query, {"u_id": user_id, "s_id": song_id}).fetchone()
+
+        return jsonify({"is_favorite": result is not None}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @api.route('/api/songs', methods=['GET'])
 def get_songs():

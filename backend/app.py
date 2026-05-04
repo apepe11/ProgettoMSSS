@@ -1,13 +1,22 @@
-from flask import Flask
+import os
+from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_mail import Mail, Message
 from config import Config
 from database import db
 
 # 1. Create the app globally so Docker can see it!
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/flask_static')
 CORS(app)
 app.config.from_object(Config)
+
+@app.route('/static/music/<path:filename>')
+def serve_music(filename):
+    # Supporto per i file che potrebbero essere in sottocartelle Q1, Q2, ecc.
+    # ma che in realtà si trovano direttamente nella root di static/music/
+    actual_filename = os.path.basename(filename)
+    music_dir = os.path.join(app.root_path, 'static', 'music')
+    return send_from_directory(music_dir, actual_filename)
 
 # Configurazione Mail (Esempio per Gmail)
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
