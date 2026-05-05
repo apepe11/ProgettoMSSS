@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "com.example.progetto.wear-debug-18:/drawable_notify_icon.xml.flat",
+        "source": "com.example.progetto.wear-main-20:/drawable/notify_icon.xml"
+    },
+    {
+        "merged": "com.example.progetto.wear-debug-18:/drawable_ic_wear_launcher.xml.flat",
+        "source": "com.example.progetto.wear-main-20:/drawable/ic_wear_launcher.xml"
+    }
+]

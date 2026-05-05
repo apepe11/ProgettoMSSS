@@ -2,9 +2,11 @@ package com.example.progetto.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,61 +25,99 @@ import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.EmotionAnalysisViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
+import com.example.progetto.utils.LiveSignalSnapshot
 import com.example.progetto.utils.SensorCollectionViewModel
-import mylibrary.mindrove.SensorData
-import mylibrary.mindrove.ServerManager
 import java.util.UUID
-import android.util.Log
+import java.util.Locale
 
 @Composable
 fun EmotionAnalysisScreen(
     onOpenDrawer: () -> Unit = {},
     onReviewSong: () -> Unit = {},
     onGoOn: () -> Unit = {},
-    onPlaySong: (String, String, String) -> Unit = { _, _, _ -> },
+    onPlaySong: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     viewModel: EmotionAnalysisViewModel = viewModel(),
     authViewModel: AuthViewModel = viewModel(),
     playerViewModel: PlayerViewModel = viewModel()
 ) {
     val context = LocalContext.current
-    val sensorViewModel = remember { SensorCollectionViewModel(context) }
+    val sensorViewModel = remember { SensorCollectionViewModel.get(context) }
     val userId = authViewModel.currentUser?.userId
     val currentSong by viewModel.currentSong.collectAsState()
     val currentEmotion by viewModel.currentEmotion.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val sensorsAvailable by viewModel.sensorsAvailable.collectAsState()
+    val isPlaying by playerViewModel.isPlaying.collectAsState()
+    val playingSongId by playerViewModel.currentSongId.collectAsState()
+    val currentPosition by playerViewModel.currentPosition.collectAsState()
+    val duration by playerViewModel.duration.collectAsState()
+    val signalSnapshot by sensorViewModel.signalSnapshot.collectAsState()
     var autoPlayedSongId by remember { mutableStateOf<String?>(null) }
+    var completedSongId by remember { mutableStateOf<String?>(null) }
 
-    // MindRove EEG integration (ServerManager callback)
-    val serverManager = remember {
-        ServerManager { sensorData: SensorData ->
-            sensorViewModel.onEegDataReceived(0, sensorData.channel1.toDouble())
-            sensorViewModel.onEegDataReceived(1, sensorData.channel2.toDouble())
-            sensorViewModel.onEegDataReceived(2, sensorData.channel3.toDouble())
-            sensorViewModel.onEegDataReceived(3, sensorData.channel4.toDouble())
-            sensorViewModel.onEegDataReceived(4, sensorData.channel5.toDouble())
-            sensorViewModel.onEegDataReceived(5, sensorData.channel6.toDouble())
-        }
-    }
+    val songFinished = currentSong?.song_id == completedSongId
 
-    LaunchedEffect(Unit) {
-        Log.d("MindRove", "Starting ServerManager")
-        serverManager.start()
-    }
-
-    LaunchedEffect(currentSong?.song_id) {
+    val startCurrentListeningSession = {
         val song = currentSong
-        if (song != null && song.url.isNotEmpty() && autoPlayedSongId != song.song_id) {
-            autoPlayedSongId = song.song_id
-            playerViewModel.playSong(song.title, song.artist, song.url, song.song_id)
+        val songId = song?.song_id?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+        val userUuid = userId
+            ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
+            ?: UUID.randomUUID()
+        if (songId != null && !sensorViewModel.isCollecting()) {
+            sensorViewModel.startListeningSession(userUuid, songId)
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            Log.d("MindRove", "Stopping ServerManager")
-            serverManager.stop()
+    val openCurrentSong = {
+        val song = currentSong
+        if (song != null && song.url.isNotEmpty()) {
+            onPlaySong(song.title, song.artist, song.url, song.song_id)
+        }
+    }
+
+    val toggleCurrentSong = {
+        val song = currentSong
+        if (song != null && song.url.isNotEmpty()) {
+            if (playingSongId == song.song_id) {
+                playerViewModel.togglePlayPause()
+            } else {
+                completedSongId = null
+                startCurrentListeningSession()
+                playerViewModel.updatePlaylist(emptyList(), -1)
+                playerViewModel.playSong(song.title, song.artist, song.url, song.song_id)
+            }
+        }
+    }
+
+
+    LaunchedEffect(currentSong?.song_id, userId) {
+        val song = currentSong
+        if (song != null && song.url.isNotEmpty()) {
+            if (!sensorViewModel.isCollecting()) {
+                startCurrentListeningSession()
+            }
+
+            if (autoPlayedSongId != song.song_id) {
+                autoPlayedSongId = song.song_id
+                completedSongId = null
+                playerViewModel.updatePlaylist(emptyList(), -1)
+                playerViewModel.playSong(song.title, song.artist, song.url, song.song_id)
+            }
+        }
+    }
+
+    LaunchedEffect(currentSong?.song_id, playingSongId, isPlaying, currentPosition, duration) {
+        val song = currentSong
+        val isCurrentSongAtEnd = song != null &&
+            playingSongId == song.song_id &&
+            duration > 0 &&
+            currentPosition >= duration - 1000 &&
+            !isPlaying
+
+        if (isCurrentSongAtEnd && completedSongId != song.song_id) {
+            completedSongId = song.song_id
+            sensorViewModel.stopListeningSession()
         }
     }
 
@@ -141,7 +181,11 @@ fun EmotionAnalysisScreen(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
+                        .height(56.dp)
+                        .clickable(
+                            enabled = currentSong?.url?.isNotEmpty() == true,
+                            onClick = openCurrentSong
+                        ),
                     shape = RoundedCornerShape(28.dp),
                     color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
                 ) {
@@ -161,38 +205,48 @@ fun EmotionAnalysisScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .padding(horizontal = 12.dp)
+                                .clickable(
+                                    enabled = currentSong?.url?.isNotEmpty() == true,
+                                    onClick = openCurrentSong
+                                )
                         ) {
                             Text(
                                 text = currentSong?.title ?: "Unknown",
                                 color = Color.White,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
-                                maxLines = 1
+                                maxLines = 1,
+                                modifier = Modifier.clickable(
+                                    enabled = currentSong?.url?.isNotEmpty() == true,
+                                    onClick = openCurrentSong
+                                )
                             )
                             Text(
                                 text = currentSong?.artist ?: "Unknown Artist",
                                 color = Color.White.copy(alpha = 0.8f),
                                 fontSize = 12.sp,
-                                maxLines = 1
+                                maxLines = 1,
+                                modifier = Modifier.clickable(
+                                    enabled = currentSong?.url?.isNotEmpty() == true,
+                                    onClick = openCurrentSong
+                                )
                             )
                         }
                         IconButton(
-                            onClick = {
-                                val song = currentSong
-                                if (song != null && song.url.isNotEmpty()) {
-                                    val songId = runCatching { UUID.fromString(song.song_id) }.getOrNull()
-                                    val userUuid = userId?.let { runCatching { UUID.fromString(it) }.getOrNull() }
-                                    if (songId != null && userUuid != null) {
-                                        sensorViewModel.startListeningSession(userUuid, songId)
-                                    }
-                                    onPlaySong(song.title, song.artist, song.url)
-                                }
-                            },
+                            onClick = toggleCurrentSong,
                             enabled = currentSong?.url?.isNotEmpty() == true
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Play",
+                                imageVector = if (isPlaying && playingSongId == currentSong?.song_id) {
+                                    Icons.Default.Pause
+                                } else {
+                                    Icons.Default.PlayArrow
+                                },
+                                contentDescription = if (isPlaying && playingSongId == currentSong?.song_id) {
+                                    "Pause"
+                                } else {
+                                    "Play"
+                                },
                                 tint = Color.White
                             )
                         }
@@ -202,30 +256,44 @@ fun EmotionAnalysisScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = "THE EMOTION DETECTED IS:",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
+            if (songFinished) {
+                Text(
+                    text = "THE EMOTION DETECTED IS:",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
-            Text(
-                text = currentEmotion,
-                fontSize = 24.sp,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
+                Text(
+                    text = currentEmotion,
+                    fontSize = 24.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
 
-            HeartButton(
-                text = "Review the song",
-                onClick = {
-                    sensorViewModel.stopListeningSession()
-                    onReviewSong()
-                },
-                modifier = Modifier.fillMaxWidth(0.8f),
-                enabled = !isLoading && currentSong != null
-            )
+                HeartButton(
+                    text = "Review the song",
+                    onClick = {
+                        onReviewSong()
+                    },
+                    modifier = Modifier.fillMaxWidth(0.8f),
+                    enabled = !isLoading && currentSong != null
+                )
+            } else {
+                Text(
+                    text = "SIGNALS ARE PERCEIVING:",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                SignalPerceptionPanel(
+                    snapshot = signalSnapshot,
+                    sensorsAvailable = sensorsAvailable,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -234,7 +302,6 @@ fun EmotionAnalysisScreen(
             text = "Review another song",
             onClick = {
                 sensorViewModel.stopListeningSession()
-                // Load a new random song
                 viewModel.loadRandomSong()
                 onGoOn()
             },
@@ -244,6 +311,87 @@ fun EmotionAnalysisScreen(
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
+
+@Composable
+private fun SignalPerceptionPanel(
+    snapshot: LiveSignalSnapshot,
+    sensorsAvailable: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        SignalLine(
+            label = "EEG activity",
+            value = snapshot.latestEeg?.let { "${formatSignalValue(it)} uV" } ?: "Waiting",
+            samples = snapshot.eegSamples,
+            active = snapshot.eegSamples > 0
+        )
+        SignalLine(
+            label = "Heart rate",
+            value = snapshot.latestHeartRate?.let { "${it.toInt()} bpm" } ?: "Waiting",
+            samples = snapshot.heartRateSamples,
+            active = snapshot.heartRateSamples > 0
+        )
+        SignalLine(
+            label = "Skin conductance",
+            value = snapshot.latestEda?.let { formatSignalValue(it) } ?: "Waiting",
+            samples = snapshot.edaSamples,
+            active = snapshot.edaSamples > 0
+        )
+
+        Text(
+            text = if (snapshot.isCollecting) {
+                "Listening to live physiological signals..."
+            } else if (sensorsAvailable) {
+                "Preparing signal collection..."
+            } else {
+                "No live wearable signal detected yet."
+            },
+            fontSize = 12.sp,
+            color = Color.Gray,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+}
+
+@Composable
+private fun SignalLine(
+    label: String,
+    value: String,
+    samples: Int,
+    active: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.LightGray.copy(alpha = 0.25f),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(text = "$samples samples", fontSize = 11.sp, color = Color.Gray)
+            }
+            Text(
+                text = value,
+                fontSize = 14.sp,
+                color = if (active) MaterialTheme.colorScheme.primary else Color.Gray,
+                fontWeight = FontWeight.Medium
+            )
+        }
+    }
+}
+
+private fun formatSignalValue(value: Float): String =
+    String.format(Locale.getDefault(), "%.1f", value)
 
 @Preview(showBackground = true)
 @Composable

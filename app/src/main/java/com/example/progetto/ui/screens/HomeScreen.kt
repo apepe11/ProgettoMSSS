@@ -15,10 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.utils.SensorAvailability
-import com.example.progetto.utils.EegSignalTracker
 import kotlinx.coroutines.delay
-import mylibrary.mindrove.SensorData
-import mylibrary.mindrove.ServerManager
 
 @Composable
 fun HomeScreen(
@@ -27,21 +24,6 @@ fun HomeScreen(
     onNavigateToListeningMode: () -> Unit = {}
 ) {
     val context = LocalContext.current
-    val serverManager = remember {
-        ServerManager { sensorData: SensorData ->
-            EegSignalTracker.markSample(System.currentTimeMillis())
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        serverManager.start()
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            serverManager.stop()
-        }
-    }
 
     var sensorsAvailable by remember {
         mutableStateOf(

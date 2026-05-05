@@ -59,6 +59,7 @@ dependencies {
     implementation(libs.retrofit.gson)
     implementation(libs.okhttp.logging)
     implementation("androidx.datastore:datastore-preferences:1.1.2")
+    implementation("com.google.android.gms:play-services-wearable:18.2.0")
     implementation(libs.core.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

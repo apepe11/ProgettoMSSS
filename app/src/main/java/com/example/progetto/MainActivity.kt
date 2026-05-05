@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
@@ -40,9 +41,13 @@ import androidx.core.content.ContextCompat
 import com.example.progetto.ui.screens.*
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.utils.SensorAvailability
+import com.example.progetto.utils.EegSignalTracker
+import com.example.progetto.utils.SensorCollectionViewModel
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 import kotlinx.coroutines.launch
+import mylibrary.mindrove.SensorData
+import mylibrary.mindrove.ServerManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,6 +76,34 @@ fun GlobalDrawerNavigation() {
     val authViewModel: AuthViewModel = viewModel()
     val playerViewModel: PlayerViewModel = viewModel()
     val context = LocalContext.current
+    val sensorViewModel = remember { SensorCollectionViewModel.get(context) }
+    var loggedFirstEegSample by remember { mutableStateOf(false) }
+    val serverManager = remember {
+        ServerManager { sensorData: SensorData ->
+            if (!loggedFirstEegSample) {
+                loggedFirstEegSample = true
+                Log.d("MindRove", "First EEG sample: measurements=${sensorData.numberOfMeasurement}")
+            }
+            EegSignalTracker.markSample(System.currentTimeMillis())
+            sensorViewModel.onEegDataReceived(0, sensorData.channel1.toDouble())
+            sensorViewModel.onEegDataReceived(1, sensorData.channel2.toDouble())
+            sensorViewModel.onEegDataReceived(2, sensorData.channel3.toDouble())
+            sensorViewModel.onEegDataReceived(3, sensorData.channel4.toDouble())
+            sensorViewModel.onEegDataReceived(4, sensorData.channel5.toDouble())
+            sensorViewModel.onEegDataReceived(5, sensorData.channel6.toDouble())
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        serverManager.start()
+        Log.d("MindRove", "ServerManager started, ip=${serverManager.ipAddress}")
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            serverManager.stop()
+        }
+    }
 
     // Track current route to know when to show the top menu
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -269,6 +302,14 @@ fun AppNavigation(
     playerViewModel: PlayerViewModel,
     onOpenDrawer: () -> Unit
 ) {
+    fun navigateToPlayer(title: String, artist: String, url: String, songId: String) {
+        val encodedTitle = Uri.encode(title)
+        val encodedArtist = Uri.encode(artist)
+        val encodedUrl = Uri.encode(url)
+        val encodedSongId = Uri.encode(songId)
+        navController.navigate("player?title=$encodedTitle&artist=$encodedArtist&url=$encodedUrl&songId=$encodedSongId")
+    }
+
     NavHost(navController = navController, startDestination = "welcome") {
         composable("welcome") {
             WelcomeScreen(
@@ -320,8 +361,7 @@ fun AppNavigation(
                     navController.navigate("playlist_detail/$playlistId")
                 },
                 onNavigateToPlayer = { title, artist, url, songId ->
-                    val encodedUrl = Uri.encode(url)
-                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl&songId=$songId")
+                    navigateToPlayer(title, artist, url, songId)
                 },
                 onNavigateBack = { navController.popBackStack() },
                 playerViewModel = playerViewModel
@@ -335,8 +375,7 @@ fun AppNavigation(
             PlaylistDetailScreen(
                 playlistId = playlistId,
                 onNavigateToPlayer = { title, artist, url, songId ->
-                    val encodedUrl = Uri.encode(url)
-                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl&songId=$songId")
+                    navigateToPlayer(title, artist, url, songId)
                 },
                 onNavigateBack = { navController.popBackStack() },
                 playerViewModel = playerViewModel
@@ -362,8 +401,7 @@ fun AppNavigation(
                 currentUserId = currentUserId, // 2. Pass it into the screen right here!
                 onOpenDrawer = onOpenDrawer,
                 onNavigateToPlayer = { title, artist, url, songId ->
-                    val encodedUrl = Uri.encode(url)
-                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl&songId=$songId")
+                    navigateToPlayer(title, artist, url, songId)
                 }
             )
         }
@@ -372,9 +410,8 @@ fun AppNavigation(
                 onOpenDrawer = onOpenDrawer,
                 onReviewSong = { navController.navigate("review_emotion") },
                 onGoOn = { /* Handled internally in screen */ },
-                onPlaySong = { title, artist, url ->
-                    val encodedUrl = Uri.encode(url)
-                    navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
+                onPlaySong = { title, artist, url, songId ->
+                    navigateToPlayer(title, artist, url, songId)
                 },
                 authViewModel = authViewModel,
                 playerViewModel = playerViewModel

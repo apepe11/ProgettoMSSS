@@ -4,9 +4,25 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.wearable.Wearable
 import com.example.progetto.data.UserPreferences
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
+
+data class LiveSignalSnapshot(
+    val isCollecting: Boolean = false,
+    val heartRateSamples: Int = 0,
+    val edaSamples: Int = 0,
+    val eegSamples: Int = 0,
+    val latestHeartRate: Float? = null,
+    val latestEda: Float? = null,
+    val latestEeg: Float? = null
+)
 
 /**
  * Example ViewModel showing how to integrate SensorManager with your app
@@ -24,15 +40,39 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
     
     private var currentSessionId: UUID? = null
     private var isSessionActive = false
+    private var signalSnapshotJob: Job? = null
+    private var wearableHeartRateJob: Job? = null
+    private var wearableEdaJob: Job? = null
+    private var loggedFirstEegSample = false
+    private val wearableMessageListener = WearableMessageListener()
+    private val wearableHeartRateBuffer = mutableListOf<SensorReading>()
+    private val wearableEdaBuffer = mutableListOf<SensorReading>()
+
+    private val _signalSnapshot = MutableStateFlow(LiveSignalSnapshot())
+    val signalSnapshot: StateFlow<LiveSignalSnapshot> = _signalSnapshot.asStateFlow()
     
     companion object {
         private const val TAG = "SensorCollectionViewModel"
+        @Volatile private var instance: SensorCollectionViewModel? = null
+
+        fun get(context: Context): SensorCollectionViewModel {
+            val appContext = context.applicationContext
+            return instance ?: synchronized(this) {
+                instance ?: SensorCollectionViewModel(appContext).also { instance = it }
+            }
+        }
     }
     
     /**
      * Start a new listening session and begin collecting sensor data
      */
     fun startListeningSession(userId: UUID, songId: UUID) {
+        if (isSessionActive) {
+            Log.d(TAG, "Listening session already active, skipping duplicate start")
+            return
+        }
+
+        isSessionActive = true
         viewModelScope.launch {
             try {
                 // Create session on backend
@@ -47,11 +87,17 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
                 if (!status.hasAnySignal) {
                     Log.w(TAG, "No wearable HR/EDA sensors available, continuing to collect EEG only")
                 }
+                wearableHeartRateBuffer.clear()
+                wearableEdaBuffer.clear()
+                loggedFirstEegSample = false
+                startWearableMessageCollection()
+                WearableSamplingSender.sendStartSampling(context, isInference = false)
 
-                isSessionActive = true
+                startSignalSnapshotUpdates()
                 Log.d(TAG, "Session active with sensors: hr=${status.heartRateRegistered}, eda=${status.edaRegistered}")
                 
             } catch (e: Exception) {
+                isSessionActive = false
                 Log.e(TAG, "Error starting session", e)
             }
         }
@@ -73,11 +119,13 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
                 // Stop sensor collection
                 sensorManager.stopCollecting()
                 isSessionActive = false
+                stopWearableMessageCollection()
+                stopSignalSnapshotUpdates()
                 userPreferences.clearLastSessionId()
                 
                 // Get collected data
-                val hrData = sensorManager.getHeartRateBuffer()
-                val edaData = sensorManager.getEdaBuffer()
+                val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
+                val edaData = sensorManager.getEdaBuffer() + wearableEdaBuffer.toList()
                 val eegData = sensorManager.getEegBuffer()
                 
                 Log.d(TAG, "Collected HR samples: ${hrData.size}")
@@ -144,7 +192,12 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
      */
     fun onEegDataReceived(channel: Int, value: Double) {
         if (isSessionActive) {
+            if (!loggedFirstEegSample) {
+                loggedFirstEegSample = true
+                Log.d(TAG, "First EEG sample received: channel=$channel value=$value")
+            }
             sensorManager.addEegData(channel, value)
+            updateSignalSnapshot()
         }
     }
     
@@ -152,11 +205,96 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
      * Check if a session is currently active
      */
     fun isCollecting(): Boolean = isSessionActive
-    
+
+    private fun startSignalSnapshotUpdates() {
+        signalSnapshotJob?.cancel()
+        signalSnapshotJob = viewModelScope.launch {
+            while (isSessionActive) {
+                updateSignalSnapshot()
+                delay(500)
+            }
+        }
+    }
+
+    private fun stopSignalSnapshotUpdates() {
+        signalSnapshotJob?.cancel()
+        updateSignalSnapshot(isCollecting = false)
+    }
+
+    private fun updateSignalSnapshot(isCollecting: Boolean = isSessionActive) {
+        val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
+        val edaData = sensorManager.getEdaBuffer() + wearableEdaBuffer.toList()
+        val eegData = sensorManager.getEegBuffer()
+
+        _signalSnapshot.value = LiveSignalSnapshot(
+            isCollecting = isCollecting,
+            heartRateSamples = hrData.size,
+            edaSamples = edaData.size,
+            eegSamples = eegData.size,
+            latestHeartRate = hrData.lastOrNull()?.value,
+            latestEda = edaData.lastOrNull()?.value,
+            latestEeg = eegData.lastOrNull()?.value
+        )
+    }
+
+    private fun startWearableMessageCollection() {
+        Log.d(TAG, "Registering WearableMessageListener")
+        Wearable.getMessageClient(context).addListener(wearableMessageListener)
+
+        wearableHeartRateJob?.cancel()
+        wearableHeartRateJob = viewModelScope.launch {
+            WearableMessageListener.heartRateFlow.collect { heartRates ->
+                Log.d(TAG, "Wearable HR packet received: ${heartRates.size} samples")
+                if (heartRates.isNotEmpty()) {
+                    wearableHeartRateBuffer.clear()
+                    wearableHeartRateBuffer.addAll(
+                        heartRates.map {
+                            SensorReading(
+                                timestamp = it.timestamp,
+                                type = "hr",
+                                value = it.value
+                            )
+                        }
+                    )
+                    updateSignalSnapshot()
+                }
+            }
+        }
+
+        wearableEdaJob?.cancel()
+        wearableEdaJob = viewModelScope.launch {
+            WearableMessageListener.edaFlow.collect { edaValues ->
+                Log.d(TAG, "Wearable EDA packet received: ${edaValues.size} samples")
+                if (edaValues.isNotEmpty()) {
+                    wearableEdaBuffer.clear()
+                    wearableEdaBuffer.addAll(
+                        edaValues.map {
+                            SensorReading(
+                                timestamp = it.timestamp,
+                                type = "eda",
+                                value = it.value
+                            )
+                        }
+                    )
+                    updateSignalSnapshot()
+                }
+            }
+        }
+    }
+
+    private fun stopWearableMessageCollection() {
+        wearableHeartRateJob?.cancel()
+        wearableEdaJob?.cancel()
+        Log.d(TAG, "Removing WearableMessageListener")
+        Wearable.getMessageClient(context).removeListener(wearableMessageListener)
+    }
+
     override fun onCleared() {
         super.onCleared()
         if (isSessionActive) {
             sensorManager.stopCollecting()
         }
+        stopWearableMessageCollection()
+        signalSnapshotJob?.cancel()
     }
 }

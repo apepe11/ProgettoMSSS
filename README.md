@@ -111,6 +111,56 @@ Read app logs for the network and sensor flow:
 adb logcat | grep "ListeningVM\|EmotionAnalysisVM\|SensorManager\|SensorCollectionViewModel"
 ```
 
+### Wear OS Companion App
+
+HeartMusic includes a Wear OS companion module (`:wear`) used to collect heart rate and EDA samples from the smartwatch. The phone app sends `/start_sampling`; the watch app responds with `/sensor_series`.
+
+Build the Wear OS APK:
+```bash
+./gradlew :wear:assembleDebug
+```
+
+The APK is generated at:
+```bash
+wear/build/outputs/apk/debug/wear-debug.apk
+```
+
+Connect the Pixel Watch with wireless debugging:
+1. On the watch, enable **Developer options** and **Wireless debugging**.
+2. Use **Pair new device** and run:
+```bash
+adb pair WATCH_REAL_IP:PAIRING_PORT
+```
+3. Enter the pairing code shown on the watch.
+4. Go back to the main **Wireless debugging** screen and use the **IP address & Port** value:
+```bash
+adb connect WATCH_REAL_IP:DEBUG_PORT
+```
+
+
+Check that ADB sees both phone and watch:
+```bash
+adb devices
+```
+
+Install the Wear APK on the watch only:
+```bash
+adb -s WATCH_REAL_IP:DEBUG_PORT install wear/build/outputs/apk/debug/wear-debug.apk
+```
+
+After installation, open HeartMusic on the watch once and grant the `BODY_SENSORS` permission.
+
+Useful Wear/sensor logs:
+```bash
+adb logcat | grep "WearableSamplingSender\|WearableMessageListener\|SamplingMessageService\|SamplingService\|WearSensorRepository\|WearDataSender"
+```
+
+If installation fails with:
+```text
+INSTALL_FAILED_MISSING_SHARED_LIBRARY: ... com.google.android.wearable
+```
+you are installing the Wear APK on the phone instead of the watch. Run `adb devices` and install again with `adb -s WATCH_DEVICE_ID ...`.
+
 ### Backend / Docker
 
 Start backend and database:
@@ -166,6 +216,13 @@ If Emotion Analysis does not appear:
 1. Check the app logs for `SensorManager` and `SensorCollectionViewModel`.
 2. Confirm the wearable/EEG data source is actually connected.
 3. Remember that the app can only react to real collected signals, not only to the phone's internal sensors.
+
+If EEG samples work but HR/EDA stay at `0 samples`:
+1. Confirm the Wear APK is installed on the Pixel Watch, not on the phone.
+2. Open the Wear app once and grant `BODY_SENSORS`.
+3. Check phone logs for `Sent sampling request`.
+4. Check watch logs for `Start sampling received` and `Sending snapshot`.
+5. Check phone logs for `Message received on path=/sensor_series`.
 
 ---
 *Project created for the MSSS course - 2025/2026*

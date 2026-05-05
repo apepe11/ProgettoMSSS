@@ -61,9 +61,8 @@ fun MusicPlayerScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Album Art Placeholder
             Surface(
-                modifier = Modifier.size(300.dp),
+                modifier = Modifier.size(220.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = MaterialTheme.shapes.medium
             ) {
@@ -71,13 +70,13 @@ fun MusicPlayerScreen(
                     Icon(
                         imageVector = Icons.Default.MusicNote,
                         contentDescription = null,
-                        modifier = Modifier.size(100.dp),
+                        modifier = Modifier.size(76.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -121,31 +120,45 @@ fun MusicPlayerScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                horizontalArrangement = Arrangement.spacedBy(28.dp)
             ) {
-                IconButton(onClick = { viewModel.playPrevious() }) {
-                    Icon(Icons.Default.SkipPrevious, contentDescription = "Previous")
+                IconButton(
+                    onClick = { viewModel.playPrevious() },
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        Icons.Default.SkipPrevious,
+                        contentDescription = "Previous",
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
 
                 FilledIconButton(
                     onClick = {
                         viewModel.togglePlayPause()
                     },
-                    modifier = Modifier.size(64.dp)
+                    modifier = Modifier.size(82.dp)
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(44.dp)
                     )
                 }
 
-                IconButton(onClick = { viewModel.playNext() }) {
-                    Icon(Icons.Default.SkipNext, contentDescription = "Next")
+                IconButton(
+                    onClick = { viewModel.playNext() },
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        Icons.Default.SkipNext,
+                        contentDescription = "Next",
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
             }
         }
