@@ -45,9 +45,7 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
                 // Start sensor collection
                 val status = sensorManager.startCollecting()
                 if (!status.hasAnySignal) {
-                    Log.w(TAG, "No wearable signal sensors available, session will not activate")
-                    currentSessionId = null
-                    return@launch
+                    Log.w(TAG, "No wearable HR/EDA sensors available, continuing to collect EEG only")
                 }
 
                 isSessionActive = true

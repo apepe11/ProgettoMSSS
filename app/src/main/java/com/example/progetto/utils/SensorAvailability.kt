@@ -30,6 +30,34 @@ object SensorAvailability {
         return available
     }
 
+    fun hasEmotionSensorsStrict(context: Context): Boolean {
+        val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+            ?: return false
+
+        val heartRateAvailable = hasSensor(sensorManager, Sensor.TYPE_HEART_RATE)
+        val edaAvailable = hasSensor(sensorManager, SENSOR_TYPE_EDA)
+        val bluetoothConnected = hasConnectedBluetoothDevice(context)
+        val available = heartRateAvailable || edaAvailable || bluetoothConnected
+
+        Log.d(
+            TAG,
+            "[strict] heartRate=$heartRateAvailable eda=$edaAvailable bluetoothConnected=$bluetoothConnected available=$available"
+        )
+        return available
+    }
+
+    fun hasEegSignal(): Boolean {
+        val available = EegSignalTracker.hasRecentSignal()
+        Log.d(TAG, "[eeg] recentSignal=$available")
+        return available
+    }
+
+    fun hasWatchSignal(context: Context): Boolean {
+        val available = hasConnectedBluetoothDevice(context)
+        Log.d(TAG, "[watch] bluetoothConnected=$available")
+        return available
+    }
+
     private fun hasSensor(sensorManager: SensorManager, sensorType: Int): Boolean {
         return sensorManager.getDefaultSensor(sensorType) != null ||
             sensorManager.getDynamicSensorList(sensorType).isNotEmpty()

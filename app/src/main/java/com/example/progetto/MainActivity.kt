@@ -134,10 +134,12 @@ fun GlobalDrawerNavigation() {
                                 label = { Text(label) },
                                 selected = false,
                                 onClick = {
-                                    if (route == "emotion_analysis" && !SensorAvailability.hasEmotionSensors(context)) {
+                                    if (route == "emotion_analysis" &&
+                                        !(SensorAvailability.hasEegSignal() && SensorAvailability.hasWatchSignal(context))
+                                    ) {
                                         Toast.makeText(
                                             context,
-                                            "Connect ECG/HR sensors to use Emotion Analysis.",
+                                            "Connect EEG and watch to use Emotion Analysis.",
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         return@NavigationDrawerItem
@@ -374,7 +376,8 @@ fun AppNavigation(
                     val encodedUrl = Uri.encode(url)
                     navController.navigate("player?title=$title&artist=$artist&url=$encodedUrl")
                 },
-                authViewModel = authViewModel
+                authViewModel = authViewModel,
+                playerViewModel = playerViewModel
             )
         }
         composable("review_emotion") {

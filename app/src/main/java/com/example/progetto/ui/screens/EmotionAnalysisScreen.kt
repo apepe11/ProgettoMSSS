@@ -22,8 +22,12 @@ import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.EmotionAnalysisViewModel
+import com.example.progetto.ui.viewmodels.PlayerViewModel
 import com.example.progetto.utils.SensorCollectionViewModel
+import mylibrary.mindrove.SensorData
+import mylibrary.mindrove.ServerManager
 import java.util.UUID
+import android.util.Log
 
 @Composable
 fun EmotionAnalysisScreen(
@@ -32,7 +36,8 @@ fun EmotionAnalysisScreen(
     onGoOn: () -> Unit = {},
     onPlaySong: (String, String, String) -> Unit = { _, _, _ -> },
     viewModel: EmotionAnalysisViewModel = viewModel(),
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    playerViewModel: PlayerViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val sensorViewModel = remember { SensorCollectionViewModel(context) }
@@ -42,6 +47,39 @@ fun EmotionAnalysisScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     val sensorsAvailable by viewModel.sensorsAvailable.collectAsState()
+    var autoPlayedSongId by remember { mutableStateOf<String?>(null) }
+
+    // MindRove EEG integration (ServerManager callback)
+    val serverManager = remember {
+        ServerManager { sensorData: SensorData ->
+            sensorViewModel.onEegDataReceived(0, sensorData.channel1.toDouble())
+            sensorViewModel.onEegDataReceived(1, sensorData.channel2.toDouble())
+            sensorViewModel.onEegDataReceived(2, sensorData.channel3.toDouble())
+            sensorViewModel.onEegDataReceived(3, sensorData.channel4.toDouble())
+            sensorViewModel.onEegDataReceived(4, sensorData.channel5.toDouble())
+            sensorViewModel.onEegDataReceived(5, sensorData.channel6.toDouble())
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        Log.d("MindRove", "Starting ServerManager")
+        serverManager.start()
+    }
+
+    LaunchedEffect(currentSong?.song_id) {
+        val song = currentSong
+        if (song != null && song.url.isNotEmpty() && autoPlayedSongId != song.song_id) {
+            autoPlayedSongId = song.song_id
+            playerViewModel.playSong(song.title, song.artist, song.url, song.song_id)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            Log.d("MindRove", "Stopping ServerManager")
+            serverManager.stop()
+        }
+    }
 
     // Removed the Scaffold entirely! Now it's just a clean Column.
     Column(
@@ -62,7 +100,7 @@ fun EmotionAnalysisScreen(
                 color = MaterialTheme.colorScheme.errorContainer
             ) {
                 Text(
-                    text = "⚠️ Nessun sensore compatibile rilevato\nL'analisi resta disponibile, ma i dati reali non sono attivi.",
+                    text = "⚠️ EEG non in streaming o watch non collegata\nL'analisi resta disponibile, ma i dati reali non sono attivi.",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,

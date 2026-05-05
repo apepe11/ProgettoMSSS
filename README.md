@@ -59,7 +59,12 @@ For a real Android device, make sure USB debugging is enabled and run:
 ```bash
 adb reverse tcp:5005 tcp:5005
 ```
-
+```bash
+while true; do
+  adb reverse tcp:5005 tcp:5005
+  sleep 2
+done
+```
 The app will then talk to `http://127.0.0.1:5005` on the device.
 
 ---

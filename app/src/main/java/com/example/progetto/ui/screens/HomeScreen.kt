@@ -15,7 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.utils.SensorAvailability
+import com.example.progetto.utils.EegSignalTracker
 import kotlinx.coroutines.delay
+import mylibrary.mindrove.SensorData
+import mylibrary.mindrove.ServerManager
 
 @Composable
 fun HomeScreen(
@@ -24,13 +27,32 @@ fun HomeScreen(
     onNavigateToListeningMode: () -> Unit = {}
 ) {
     val context = LocalContext.current
+    val serverManager = remember {
+        ServerManager { sensorData: SensorData ->
+            EegSignalTracker.markSample(System.currentTimeMillis())
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        serverManager.start()
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            serverManager.stop()
+        }
+    }
+
     var sensorsAvailable by remember {
-        mutableStateOf(SensorAvailability.hasEmotionSensors(context))
+        mutableStateOf(
+            SensorAvailability.hasEegSignal() && SensorAvailability.hasWatchSignal(context)
+        )
     }
 
     LaunchedEffect(Unit) {
         while (true) {
-            sensorsAvailable = SensorAvailability.hasEmotionSensors(context)
+            sensorsAvailable =
+                SensorAvailability.hasEegSignal() && SensorAvailability.hasWatchSignal(context)
             delay(3000)
         }
     }
@@ -57,7 +79,7 @@ fun HomeScreen(
 
             if (!sensorsAvailable) {
                 Text(
-                    text = "Connect ECG/HR sensors to enable Emotion Analysis.",
+                    text = "Connect EEG and watch to enable Emotion Analysis.",
                     color = Color.Gray,
                     fontSize = 12.sp
                 )

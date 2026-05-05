@@ -86,7 +86,7 @@ class SensorManager(private val context: Context) : SensorEventListener {
             edaRegistered = true
         } ?: Log.w(TAG, "EDA sensor not available")
 
-        isCollecting = heartRateRegistered || edaRegistered
+        isCollecting = true
         Log.d(TAG, "Collection status: heartRate=$heartRateRegistered, eda=$edaRegistered, active=$isCollecting")
         return SensorCollectionStatus(
             heartRateRegistered = heartRateRegistered,
@@ -98,6 +98,7 @@ class SensorManager(private val context: Context) : SensorEventListener {
         Log.d(TAG, "Stopping sensor collection")
         isCollecting = false
         androidSensorManager.unregisterListener(this)
+        EegSignalTracker.clear()
     }
     
     fun getHeartRateBuffer(): List<SensorReading> = heartRateBuffer.toList()
@@ -173,5 +174,6 @@ class SensorManager(private val context: Context) : SensorEventListener {
             channel = channel
         )
         eegBuffer.add(reading)
+        EegSignalTracker.markSample(timestamp)
     }
 }

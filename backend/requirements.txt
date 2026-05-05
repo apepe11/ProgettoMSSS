@@ -13,3 +13,4 @@ flask-cors
 Flask-Mail==0.10.0
 greenlet==3.4.0
 typing-extensions==4.15.0
+mutagen==1.47.0
