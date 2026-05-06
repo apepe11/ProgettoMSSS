@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -27,13 +26,12 @@ import com.example.progetto.utils.Song
 // ==========================================
 @Composable
 fun FavouriteSongsScreen(
-    currentUserId: String, // <-- Added this parameter!
+    currentUserId: String,
     onOpenDrawer: () -> Unit = {},
     onNavigateToPlayer: (String, String, String, String) -> Unit = { _, _, _, _ -> },
     viewModel: TopSongsViewModel = viewModel()
 ) {
     val topSongs by viewModel.topSongs.collectAsState()
-    val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     // Refresh data when entering the screen, specifically for this user
@@ -44,9 +42,7 @@ fun FavouriteSongsScreen(
     // Pass everything down to the "dumb" UI
     FavouriteSongsScreenContent(
         topSongs = topSongs,
-        searchQuery = searchQuery,
         isLoading = isLoading,
-        onSearchQueryChange = { viewModel.onSearchQueryChange(it) },
         onNavigateToPlayer = onNavigateToPlayer,
         onRemoveFavorite = { songId -> viewModel.toggleFavoriteOff(currentUserId, songId) }
     )
@@ -58,9 +54,7 @@ fun FavouriteSongsScreen(
 @Composable
 fun FavouriteSongsScreenContent(
     topSongs: List<Song>,
-    searchQuery: String,
     isLoading: Boolean,
-    onSearchQueryChange: (String) -> Unit,
     onNavigateToPlayer: (String, String, String, String) -> Unit,
     onRemoveFavorite: (String) -> Unit
 ) {
@@ -77,23 +71,6 @@ fun FavouriteSongsScreenContent(
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom = 24.dp)
         )
-
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = onSearchQueryChange,
-            placeholder = { Text("Search for Playlist, Emotion, Song", fontSize = 12.sp) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            shape = RoundedCornerShape(25.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.LightGray,
-                unfocusedBorderColor = Color.LightGray
-            ),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -136,7 +113,6 @@ fun FavouriteSongsScreenContent(
                                     .size(16.dp)
                                     .clickable { onRemoveFavorite(song.songId) }
                             )
-
                         }
                     }
                 }
@@ -161,9 +137,7 @@ fun PreviewFavouriteSongsScreen_Populated() {
 
         FavouriteSongsScreenContent(
             topSongs = mockSongs,
-            searchQuery = "",
             isLoading = false,
-            onSearchQueryChange = {},
             onNavigateToPlayer = { _, _, _, _ -> },
             onRemoveFavorite = {}
         )
@@ -176,9 +150,7 @@ fun PreviewFavouriteSongsScreen_Loading() {
     HeartMusicTheme {
         FavouriteSongsScreenContent(
             topSongs = emptyList(),
-            searchQuery = "",
             isLoading = true,
-            onSearchQueryChange = {},
             onNavigateToPlayer = { _, _, _, _ -> },
             onRemoveFavorite = {}
         )
@@ -191,9 +163,7 @@ fun PreviewFavouriteSongsScreen_Empty() {
     HeartMusicTheme {
         FavouriteSongsScreenContent(
             topSongs = emptyList(),
-            searchQuery = "",
             isLoading = false,
-            onSearchQueryChange = {},
             onNavigateToPlayer = { _, _, _, _ -> },
             onRemoveFavorite = {}
         )
