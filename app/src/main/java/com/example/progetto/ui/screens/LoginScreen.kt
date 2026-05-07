@@ -12,6 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -24,6 +27,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.LoginUiState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.semantics.LiveRegionMode
 
 @Composable
 fun LoginScreen(
@@ -46,8 +50,6 @@ fun LoginScreen(
         }
     }
 
-
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -68,7 +70,7 @@ fun LoginScreen(
         // 2. Logo (più piccolo rispetto alla Welcome)
         Image(
             painter = painterResource(id = R.drawable.logo),
-            contentDescription = "Logo",
+            contentDescription = "HeartMusic Logo",
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape),
@@ -99,7 +101,12 @@ fun LoginScreen(
             Text(
                 text = displayError,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier
+                    .padding(bottom = 8.dp)
+                    .semantics { 
+                        // Tell TalkBack to announce the error immediately
+                        liveRegion = LiveRegionMode.Polite 
+                    }
             )
         }
 
@@ -108,7 +115,7 @@ fun LoginScreen(
             text = if (uiState is LoginUiState.Loading) "Signing in..." else "Sign in",
             onClick = {
                 if (email.isEmpty() || password.isEmpty()) {
-                    localError = "Inserire username e password"
+                    localError = "Please enter username and password"
                 } else {
                     localError = null
                     viewModel.login(email, password)
@@ -127,10 +134,13 @@ fun LoginScreen(
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .padding(bottom = 8.dp)
-                    .clickable { onNavigateToForgotPassword() }
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = "Reset your password"
+                    ) { onNavigateToForgotPassword() }
             )
             
-            Row {
+            Row(modifier = Modifier.semantics(mergeDescendants = true) { }) {
                 Text(
                     text = "Don't have an account? ",
                     fontSize = 14.sp,
@@ -141,7 +151,10 @@ fun LoginScreen(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.clickable { onNavigateToRegister() }
+                    modifier = Modifier.clickable(
+                        role = Role.Button,
+                        onClickLabel = "Create a new account"
+                    ) { onNavigateToRegister() }
                 )
             }
         }

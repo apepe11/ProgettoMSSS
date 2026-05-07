@@ -78,7 +78,7 @@ fun FavouriteSongsScreenContent(
             }
         } else if (topSongs.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No favourite songs yet", color = Color.Gray)
+                Text(text = "No favourite songs yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -100,8 +100,8 @@ fun FavouriteSongsScreenContent(
                                 .weight(1f)
                                 .padding(start = 16.dp)
                         ) {
-                            Text(text = song.title, fontWeight = FontWeight.Bold)
-                            Text(text = song.artist, fontSize = 12.sp, color = Color.Gray)
+                            Text(text = song.title, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            Text(text = song.artist, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {

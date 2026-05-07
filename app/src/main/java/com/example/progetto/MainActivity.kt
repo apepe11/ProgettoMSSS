@@ -134,7 +134,7 @@ fun GlobalDrawerNavigation() {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     ModalDrawerSheet(
                         modifier = Modifier.fillMaxHeight().width(280.dp),
-                        drawerContainerColor = Color.White
+                        drawerContainerColor = MaterialTheme.colorScheme.surface
                     ) {
                         Spacer(modifier = Modifier.height(24.dp))
                         Row(
@@ -234,7 +234,7 @@ fun GlobalDrawerNavigation() {
                                             contentScale = ContentScale.Fit
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("HeartMusic", fontSize = 20.sp, color = Color.Black)
+                                        Text("HeartMusic", fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
                                     }
                                 },
                                 actions = {
@@ -242,7 +242,7 @@ fun GlobalDrawerNavigation() {
                                         Icon(
                                             imageVector = Icons.Default.MoreVert,
                                             contentDescription = "Menu",
-                                            tint = Color.Black
+                                            tint = MaterialTheme.colorScheme.onBackground
                                         )
                                     }
                                 },

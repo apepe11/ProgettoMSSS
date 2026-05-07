@@ -39,7 +39,7 @@ fun YourFeelingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8F9FA))
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Header con solo il Titolo
         Box(
@@ -97,7 +97,7 @@ fun FeelingEntryItem(review: SongReviewResponse) {
             .fillMaxWidth()
             .wrapContentHeight(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
@@ -109,22 +109,22 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                     modifier = Modifier
                         .fillMaxHeight()
                         .width(70.dp)
-                        .background(HeartPurple.copy(alpha = 0.05f))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = "Vibe", fontSize = 12.sp, color = Color.Gray)
+                    Text(text = "Vibe", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "${review.valence}°",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = HeartPurple
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
                 // Separatore verticale
-                Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(Color(0xFFEEEEEE)))
+                Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 
                 // Parametro 2 (Arousal)
                 Column(
@@ -135,17 +135,17 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = "Energy", fontSize = 12.sp, color = Color.Gray)
+                    Text(text = "Energy", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "${review.arousal}°",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = HeartPurple
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
                 // Separatore verticale
-                Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(Color(0xFFEEEEEE)))
+                Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 
                 // Colonna Description
                 Column(
@@ -158,14 +158,14 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                         text = "DESCRIPTION",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = HeartPurple.copy(alpha = 0.6f),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                         letterSpacing = 1.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = review.description,
                         fontSize = 14.sp,
-                        color = Color.DarkGray,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
                         lineHeight = 18.sp
@@ -178,7 +178,7 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(HeartPurple.copy(alpha = 0.1f))
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
                         .padding(vertical = 4.dp, horizontal = 16.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -186,14 +186,14 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                             text = "Detected Emotion:",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Gray
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = emotion,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = HeartPurple
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }

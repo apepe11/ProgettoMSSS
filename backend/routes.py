@@ -311,9 +311,9 @@ def get_user_history(user_id):
     session_list = []
     for s in sessions:
         session_list.append({
-            "session_id": s.session_id,
-            "song_id": s.song_id,
-            "start_time": s.start_time,
+            "session_id": str(s.session_id),
+            "song_id": str(s.song_id),
+            "start_time": s.start_time.isoformat() if s.start_time else None,
             # Convert Decimals to float so JSON can read them
             "avg_bpm": float(s.avg_bpm) if s.avg_bpm else None,
             "avg_eda": float(s.avg_eda) if s.avg_eda else None
@@ -699,21 +699,25 @@ def save_song_review():
 
 @api.route('/api/users/<uuid:user_id>/reviews', methods=['GET'])
 def get_user_reviews(user_id):
-    reviews = SongReview.query.filter_by(user_id=user_id).order_by(SongReview.created_at.desc()).all()
+    try:
+        reviews = SongReview.query.filter_by(user_id=user_id).order_by(SongReview.created_at.desc()).all()
 
-    review_list = []
-    for r in reviews:
-        review_list.append({
-            "review_id": str(r.review_id),
-            "session_id": str(r.session_id) if r.session_id else None,
-            "valence": r.valence,
-            "arousal": r.arousal,
-            "description": r.description,
-            "detected_emotion": r.detected_emotion,
-            "created_at": r.created_at.isoformat()
-        })
+        review_list = []
+        for r in reviews:
+            review_list.append({
+                "review_id": str(r.review_id),
+                "session_id": str(r.session_id) if r.session_id else None,
+                "valence": r.valence,
+                "arousal": r.arousal,
+                "description": r.description or "",
+                "detected_emotion": r.detected_emotion or "Unknown",
+                "created_at": r.created_at.isoformat() if r.created_at else ""
+            })
 
-    return jsonify({"reviews": review_list}), 200
+        return jsonify({"reviews": review_list}), 200
+    except Exception as e:
+        print(f"Error in get_user_reviews: {e}")
+        return jsonify({"error": str(e), "reviews": []}), 500
 
 # ==========================================
 # 7. SYSTEM: IMPORT SONGS

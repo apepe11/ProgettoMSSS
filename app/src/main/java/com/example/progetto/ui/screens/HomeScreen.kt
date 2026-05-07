@@ -1,5 +1,6 @@
 package com.example.progetto.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -9,6 +10,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,7 +46,8 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp) // Replaced paddingValues with standard padding
+            .background(MaterialTheme.colorScheme.background)
+            .padding(24.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -62,8 +66,11 @@ fun HomeScreen(
             if (!sensorsAvailable) {
                 Text(
                     text = "Connect EEG and watch to enable Emotion Analysis.",
-                    color = Color.Gray,
-                    fontSize = 12.sp
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 12.sp,
+                    modifier = Modifier.semantics { 
+                        // Per TalkBack, leggiamo questo come un avviso
+                    }
                 )
             }
 
@@ -88,10 +95,17 @@ fun ModeButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
-            .clickable(enabled = isEnabled) { onClick() },
+            .clickable(
+                enabled = isEnabled,
+                onClickLabel = "Open $title mode",
+                role = Role.Button
+            ) { onClick() }
+            .semantics(mergeDescendants = true) {
+                // Merge title and subtitle for a single announcement
+            },
         shape = RoundedCornerShape(28.dp),
         color = if (isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-        else Color.LightGray.copy(alpha = 0.4f),
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
         shadowElevation = 4.dp
     ) {
         Box(
@@ -103,14 +117,14 @@ fun ModeButton(
                     text = title,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isEnabled) Color.White else Color.Gray
+                    color = if (isEnabled) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 )
                 if (subtitle != null) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = subtitle,
                         fontSize = 16.sp,
-                        color = if (isEnabled) Color.White.copy(alpha = 0.9f) else Color.Gray
+                        color = if (isEnabled) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     )
                 } else {
                     // Placeholder spacer for precision when subtitle is missing

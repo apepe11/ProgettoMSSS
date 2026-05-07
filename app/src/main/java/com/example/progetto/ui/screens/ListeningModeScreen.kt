@@ -48,7 +48,9 @@ fun ListeningModeScreen(
     val currentSongUrl by playerViewModel.currentSongUrl.collectAsState()
 
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // 1. Page Title
         Text(
@@ -70,8 +72,10 @@ fun ListeningModeScreen(
                 .height(50.dp),
             shape = RoundedCornerShape(25.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.LightGray,
-                unfocusedBorderColor = Color.LightGray
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedContainerColor = MaterialTheme.colorScheme.surface,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface
             ),
             singleLine = true
         )
@@ -125,12 +129,13 @@ fun ListeningModeScreen(
                                 Text(
                                     text = playlist.title,
                                     fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = "Emotion: ${playlist.emotion}",
                                     fontSize = 14.sp,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -165,7 +170,8 @@ fun ListeningModeScreen(
                             ) {
                                 Text(
                                     text = song.title.take(1).uppercase(),
-                                    fontWeight = FontWeight.Bold
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Spacer(modifier = Modifier.width(16.dp))
@@ -173,12 +179,13 @@ fun ListeningModeScreen(
                                 Text(
                                     text = song.title,
                                     fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
                                     text = song.artist,
                                     fontSize = 12.sp,
-                                    color = Color.Gray
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -211,20 +218,20 @@ fun EmptyPlaylistsView(modifier: Modifier = Modifier) {
             imageVector = Icons.Default.SearchOff,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
-            tint = Color.LightGray
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Nessuna playlist trovata",
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         Text(
             text = "Prova a cercare un altro nome, emozione o brano.",
             fontSize = 14.sp,
-            color = Color.LightGray,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
             textAlign = TextAlign.Center
         )
     }
@@ -254,23 +261,23 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .size(40.dp)
-                    .background(Color.White, RoundedCornerShape(4.dp)),
+                    .background(MaterialTheme.colorScheme.onPrimary, RoundedCornerShape(4.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(Icons.Default.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                Icon(Icons.Default.MusicNote, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
             }
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = songTitle,
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1
                 )
                 Text(
                     text = artistName,
-                    color = Color.White.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                     fontSize = 12.sp,
                     maxLines = 1
                 )
@@ -279,11 +286,11 @@ fun MiniPlayer(
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = null,
-                    tint = Color.White
+                    tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
             IconButton(onClick = { }) {
-                Icon(Icons.Default.SkipNext, contentDescription = null, tint = Color.White)
+                Icon(Icons.Default.SkipNext, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }

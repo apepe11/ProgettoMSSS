@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -19,7 +20,6 @@ import androidx.compose.ui.unit.sp
 import com.example.progetto.R
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.theme.HeartMusicTheme
-import com.example.progetto.ui.theme.HeartPurple
 
 @Composable
 fun WelcomeScreen(
@@ -45,12 +45,12 @@ fun WelcomeScreen(
         // 2. Logo
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).semantics(mergeDescendants = true) { },
             verticalArrangement = Arrangement.Center
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Logo HeartMusic",
+                contentDescription = "HeartMusic App Logo",
                 modifier = Modifier
                     .size(300.dp)
                     .clip(CircleShape),
@@ -77,14 +77,12 @@ fun WelcomeScreen(
         ) {
             HeartButton(
                 text = "Sign up",
-                onClick = onNavigateToRegister,
-                containerColor = HeartPurple // Viola
+                onClick = onNavigateToRegister
             )
             
             HeartButton(
                 text = "Sign in",
-                onClick = onNavigateToLogin,
-                containerColor = HeartPurple // Viola
+                onClick = onNavigateToLogin
             )
         }
     }
