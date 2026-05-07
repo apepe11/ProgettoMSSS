@@ -8,6 +8,12 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable // 1. ADDED THIS IMPORT
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -72,7 +78,11 @@ fun RegisterScreen(
             Text(
                 text = displayError,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .semantics { 
+                        liveRegion = LiveRegionMode.Polite 
+                    }
             )
         }
 
@@ -94,10 +104,20 @@ fun RegisterScreen(
             enabled = uiState !is LoginUiState.Loading
         )
 
-        TextButton(onClick = {
-            viewModel.resetState()
-            onNavigateBack()
-        }) {
+        TextButton(
+            onClick = {
+                viewModel.resetState()
+                onNavigateBack()
+            },
+            modifier = Modifier.semantics {
+                role = Role.Button
+                onClick(label = "Go to login screen") { 
+                    viewModel.resetState()
+                    onNavigateBack()
+                    true 
+                }
+            }
+        ) {
             Text("Already have an account? Sign in", color = MaterialTheme.colorScheme.primary)
         }
     }

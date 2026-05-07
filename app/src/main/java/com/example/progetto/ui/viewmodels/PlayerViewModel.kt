@@ -43,6 +43,7 @@ class PlayerViewModel : ViewModel() {
     val isFavorite: StateFlow<Boolean> = _isFavorite
 
     private var userId: String? = null
+    private var lastFavoriteToggleTime: Long = 0
 
     private var mediaPlayer: MediaPlayer? = null
     private var progressJob: Job? = null
@@ -136,6 +137,13 @@ class PlayerViewModel : ViewModel() {
     }
 
     fun toggleFavorite() {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastFavoriteToggleTime < 1000) {
+            Log.d("PlayerViewModel", "toggleFavorite ignorato per debounce")
+            return
+        }
+        lastFavoriteToggleTime = currentTime
+
         val sId = _currentSongId.value
         val uId = userId
         

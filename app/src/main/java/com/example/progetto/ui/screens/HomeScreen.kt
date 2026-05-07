@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -43,7 +45,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp) // Replaced paddingValues with standard padding
+            .padding(24.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -63,7 +65,10 @@ fun HomeScreen(
                 Text(
                     text = "Connect EEG and watch to enable Emotion Analysis.",
                     color = Color.Gray,
-                    fontSize = 12.sp
+                    fontSize = 12.sp,
+                    modifier = Modifier.semantics { 
+                        // Per TalkBack, leggiamo questo come un avviso
+                    }
                 )
             }
 
@@ -88,7 +93,14 @@ fun ModeButton(
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
-            .clickable(enabled = isEnabled) { onClick() },
+            .clickable(
+                enabled = isEnabled,
+                onClickLabel = "Open $title mode",
+                role = Role.Button
+            ) { onClick() }
+            .semantics(mergeDescendants = true) {
+                // Merge title and subtitle for a single announcement
+            },
         shape = RoundedCornerShape(28.dp),
         color = if (isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
         else Color.LightGray.copy(alpha = 0.4f),

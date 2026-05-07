@@ -8,6 +8,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 import java.util.Locale
@@ -46,7 +49,7 @@ fun MusicPlayerScreen(
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Close"
+                            contentDescription = "Close player"
                         )
                     }
                 }
@@ -83,15 +86,24 @@ fun MusicPlayerScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(modifier = Modifier.weight(1f)) {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics(mergeDescendants = true) { }
+                ) {
                     Text(text = actualTitle, style = MaterialTheme.typography.headlineSmall)
                     Text(text = actualArtist, style = MaterialTheme.typography.bodyLarge)
                 }
 
-                IconButton(onClick = { viewModel.toggleFavorite() }) {
+                IconButton(
+                    onClick = { viewModel.toggleFavorite() },
+                    modifier = Modifier.semantics {
+                        stateDescription = if (isFavorite) "Added to favourite" else "Removed to favourite"
+                    }
+                ) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Favorite",
+                        contentDescription = "Preferiti",
                         tint = if (isFavorite) Color.Red else LocalContentColor.current
                     )
                 }
@@ -105,6 +117,9 @@ fun MusicPlayerScreen(
                     value = currentPosition.toFloat(),
                     onValueChange = { viewModel.seekTo(it.toInt()) },
                     valueRange = 0f..(if (duration > 0) duration.toFloat() else 1f),
+                    modifier = Modifier.semantics { 
+                        contentDescription = "Song progress"
+                    },
                     colors = SliderDefaults.colors(
                         thumbColor = MaterialTheme.colorScheme.primary,
                         activeTrackColor = MaterialTheme.colorScheme.primary,
@@ -112,11 +127,21 @@ fun MusicPlayerScreen(
                     )
                 )
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { },
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text(text = formatTime(currentPosition), style = MaterialTheme.typography.bodySmall)
-                    Text(text = formatTime(duration), style = MaterialTheme.typography.bodySmall)
+                    val currentTime = formatTime(currentPosition)
+                    val totalTime = formatTime(duration)
+                    Text(
+                        text = currentTime, 
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.semantics { contentDescription = "Current position: $currentTime" }
+                    )
+                    Text(
+                        text = totalTime, 
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.semantics { contentDescription = "Total duration: $totalTime" }
+                    )
                 }
             }
 
@@ -132,7 +157,7 @@ fun MusicPlayerScreen(
                 ) {
                     Icon(
                         Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
+                        contentDescription = "Previous song",
                         modifier = Modifier.size(36.dp)
                     )
                 }
@@ -156,7 +181,7 @@ fun MusicPlayerScreen(
                 ) {
                     Icon(
                         Icons.Default.SkipNext,
-                        contentDescription = "Next",
+                        contentDescription = "Next song",
                         modifier = Modifier.size(36.dp)
                     )
                 }
