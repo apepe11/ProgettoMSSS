@@ -27,9 +27,9 @@ class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl
     /**
      * Fetch Insights Data for the Donut Chart
      */
-    suspend fun getInsights(): InsightsResponse? = withContext(Dispatchers.IO) {
+    suspend fun getInsights(userId: String): InsightsResponse? = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("$baseUrl/api/insights")
+            .url("$baseUrl/api/insights/$userId")
             .get()
             .build()
 

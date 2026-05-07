@@ -22,15 +22,13 @@ class InsightsViewModel : ViewModel() {
     private val _chartData = MutableStateFlow(EmotionStats())
     val chartData: StateFlow<EmotionStats> = _chartData.asStateFlow()
 
-    init {
-        // Automatically fetch the data the moment the screen opens
-        fetchData()
-    }
+    // 1. Removed the init block.
 
-    private fun fetchData() {
+    // 2. Changed from private to public, and renamed to loadInsights (Standard convention)
+    fun loadInsights(currentUserId: String) {
         viewModelScope.launch {
             try {
-                val data = networkManager.getInsights()
+                val data = networkManager.getInsights(currentUserId)
                 if (data != null) {
                     fullInsightsData = data
                     // Populate the chart with the "App Detected" data by default

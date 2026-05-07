@@ -741,33 +741,57 @@ def trigger_song_import():
         return jsonify({"message": "Import completed successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@api.route('/api/insights/<user_id>', methods=['GET'])
+def get_insights(user_id):
+    try:
+        # 1. Query for APP DETECTED totals
+        app_detected_counts = db.session.query(
+            Emotion.name, func.count(ListeningSession.session_id)
+        ).join(ListeningSession, ListeningSession.system_detected_emotion_id == Emotion.emotion_id) \
+         .filter(ListeningSession.user_id == user_id) \
+         .group_by(Emotion.name).all()
+
+        # 2. Query for USER EXPERIENCED totals (With safer casting)
+        user_experienced_counts = db.session.query(
+            Emotion.name, func.count(SurveyResponse.response_id)
+        ).join(
+            SurveyResponse,
+            db.cast(SurveyResponse.answer_data['emotion_id'].astext, db.Integer) == Emotion.emotion_id
+        ).filter(SurveyResponse.user_id == user_id) \
+         .group_by(Emotion.name).all()
+
+        # Helper to convert [(Name, Count)] to {name: percentage}
+        def calculate_stats(rows):
+            # Create a dictionary of counts, force lowercase keys
+            counts = {name.lower(): count for name, count in rows}
+            total = sum(counts.values())
+            
+            # CRITICAL: Prevent division by zero
+            if total == 0:
+                return {"happy": 0, "sad": 0, "calm": 0, "anxious": 0, "energetic": 0}
+            
+            return {
+                "happy": counts.get("happy", 0) / total,
+                "sad": counts.get("sad", 0) / total,
+                "calm": counts.get("calm", 0) / total,
+                "anxious": counts.get("anxious", 0) / total,
+                "energetic": counts.get("energetic", 0) / total
+            }
+
+        return jsonify({
+            "app_detected": calculate_stats(app_detected_counts),
+            "user_experienced": calculate_stats(user_experienced_counts)
+        }), 200
+
+    except Exception as e:
+        # This will print the EXACT error in your Python terminal so you can see it!
+        print(f"❌ BACKEND ERROR: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+    # ^^^ ADDED THE FILTER ABOVE ^^^
     
-
-@api.route('/api/insights', methods=['GET'])
-def get_insights():
-    # 1. Query for APP DETECTED totals
-    # Joins ListeningSession and Emotion tables based on system_detected_emotion_id
-    app_detected_counts = db.session.query(
-        Emotion.name, db.func.count(ListeningSession.session_id)
-    ).join(ListeningSession, ListeningSession.system_detected_emotion_id == Emotion.emotion_id) \
-     .group_by(Emotion.name).all()
-
-    # 2. Query for USER EXPERIENCED totals
-    # Since user experience is stored in the SurveyResponse JSONB column, 
-    # we extract the 'emotion_id' directly from the JSON payload.
-    # Note: This assumes your Android app sends survey data like {"emotion_id": 1, ...}
-    user_experienced_counts = db.session.query(
-        Emotion.name, db.func.count(SurveyResponse.response_id)
-    ).join(
-        SurveyResponse, 
-        db.cast(SurveyResponse.answer_data['emotion_id'].astext, db.Integer) == Emotion.emotion_id
-    ).group_by(Emotion.name).all()
-
-    # 3. Calculate percentages and send it to Android as JSON
-    return jsonify({
-        "app_detected": calculate_percentages(app_detected_counts),
-        "user_experienced": calculate_percentages(user_experienced_counts)
-    })
+    # ... (Keep the rest of your percentage math the same) ...
 
 # Helper function to turn raw counts into 0.0 - 1.0 percentages
 def calculate_percentages(counts_list):

@@ -4,11 +4,8 @@ import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,17 +21,25 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel // ADDED IMPORT
-import com.example.progetto.ui.components.HeartButton
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.theme.HeartMusicTheme
-import com.example.progetto.utils.InsightsViewModel // Adjust package if your ViewModel is elsewhere
+import com.example.progetto.utils.InsightsViewModel
 import kotlin.math.cos
 import kotlin.math.sin
 
 @Composable
 fun InsightsScreen(
-    onOpenDrawer: () -> Unit = {}
+    currentUserId: String, // <-- Added the user ID parameter
+    onOpenDrawer: () -> Unit = {},
+    viewModel: InsightsViewModel = viewModel() // <-- Hoisted the ViewModel here
 ) {
+    // Automatically fetch the data for this user when the screen opens
+    LaunchedEffect(currentUserId) {
+        if (currentUserId.isNotEmpty()) {
+            viewModel.loadInsights(currentUserId)
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -52,14 +57,14 @@ fun InsightsScreen(
                 .padding(bottom = 24.dp)
         )
 
-        // The Insights ViewModel and Pie Chart Content!
-        StatisticalAnalysisContent()
+        // Pass the ViewModel down to the content
+        StatisticalAnalysisContent(viewModel = viewModel)
     }
 }
 
 @Composable
 fun StatisticalAnalysisContent(
-    viewModel: InsightsViewModel = viewModel()
+    viewModel: InsightsViewModel
 ) {
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val chartData by viewModel.chartData.collectAsState()
@@ -232,6 +237,6 @@ fun LegendItem(color: Color, label: String) {
 @Composable
 fun InsightsScreenPreview() {
     HeartMusicTheme {
-        InsightsScreen()
+        InsightsScreen(currentUserId = "preview_user_id") // Added a mock ID for the preview
     }
 }

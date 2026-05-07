@@ -4,24 +4,7 @@
             "outputFile": "com.example.progetto.wear-mergeDebugResources-16:/values-hi/values-hi.xml",
             "map": [
                 {
-                    "source": "/home/luca/.gradle/caches/8.13/transforms/eb9ba2ecb2e717e0a869d28fa22d99d3/transformed/core-1.17.0/res/values-hi/values-hi.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9",
-                        "startColumns": "4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,153,256,361,462,575,681,808",
-                        "endColumns": "97,102,104,100,112,105,126,100",
-                        "endOffsets": "148,251,356,457,570,676,803,904"
-                    },
-                    "to": {
-                        "startLines": "2,3,4,5,6,7,8,27",
-                        "startColumns": "4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,153,256,361,462,575,681,3039",
-                        "endColumns": "97,102,104,100,112,105,126,100",
-                        "endOffsets": "148,251,356,457,570,676,803,3135"
-                    }
-                },
-                {
-                    "source": "/home/luca/.gradle/caches/8.13/transforms/1025b8265fcff1afa03a21a3d9605ac7/transformed/play-services-base-18.5.0/res/values-hi/values.xml",
+                    "source": "/home/elahe/.gradle/caches/8.13/transforms/1025b8265fcff1afa03a21a3d9605ac7/transformed/play-services-base-18.5.0/res/values-hi/values.xml",
                     "from": {
                         "startLines": "4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
                         "startColumns": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
@@ -38,7 +21,24 @@
                     }
                 },
                 {
-                    "source": "/home/luca/.gradle/caches/8.13/transforms/116bfa9c013149dae39440e8157d6584/transformed/play-services-basement-18.4.0/res/values-hi/values.xml",
+                    "source": "/home/elahe/.gradle/caches/8.13/transforms/eb9ba2ecb2e717e0a869d28fa22d99d3/transformed/core-1.17.0/res/values-hi/values-hi.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,153,256,361,462,575,681,808",
+                        "endColumns": "97,102,104,100,112,105,126,100",
+                        "endOffsets": "148,251,356,457,570,676,803,904"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5,6,7,8,27",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,153,256,361,462,575,681,3039",
+                        "endColumns": "97,102,104,100,112,105,126,100",
+                        "endOffsets": "148,251,356,457,570,676,803,3135"
+                    }
+                },
+                {
+                    "source": "/home/elahe/.gradle/caches/8.13/transforms/116bfa9c013149dae39440e8157d6584/transformed/play-services-basement-18.4.0/res/values-hi/values.xml",
                     "from": {
                         "startLines": "4",
                         "startColumns": "0",
