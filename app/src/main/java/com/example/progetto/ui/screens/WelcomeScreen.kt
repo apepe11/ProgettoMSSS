@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.sp
 import com.example.progetto.R
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.theme.HeartMusicTheme
-import com.example.progetto.ui.theme.HeartPurple
 
 @Composable
 fun WelcomeScreen(
@@ -78,14 +77,12 @@ fun WelcomeScreen(
         ) {
             HeartButton(
                 text = "Sign up",
-                onClick = onNavigateToRegister,
-                containerColor = HeartPurple // Viola
+                onClick = onNavigateToRegister
             )
             
             HeartButton(
                 text = "Sign in",
-                onClick = onNavigateToLogin,
-                containerColor = HeartPurple // Viola
+                onClick = onNavigateToLogin
             )
         }
     }

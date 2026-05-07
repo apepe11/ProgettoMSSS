@@ -1,5 +1,6 @@
 package com.example.progetto.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,6 +46,7 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -64,7 +66,7 @@ fun HomeScreen(
             if (!sensorsAvailable) {
                 Text(
                     text = "Connect EEG and watch to enable Emotion Analysis.",
-                    color = Color.Gray,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     modifier = Modifier.semantics { 
                         // Per TalkBack, leggiamo questo come un avviso
@@ -103,7 +105,7 @@ fun ModeButton(
             },
         shape = RoundedCornerShape(28.dp),
         color = if (isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-        else Color.LightGray.copy(alpha = 0.4f),
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
         shadowElevation = 4.dp
     ) {
         Box(
@@ -115,14 +117,14 @@ fun ModeButton(
                     text = title,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isEnabled) Color.White else Color.Gray
+                    color = if (isEnabled) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                 )
                 if (subtitle != null) {
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = subtitle,
                         fontSize = 16.sp,
-                        color = if (isEnabled) Color.White.copy(alpha = 0.9f) else Color.Gray
+                        color = if (isEnabled) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                     )
                 } else {
                     // Placeholder spacer for precision when subtitle is missing

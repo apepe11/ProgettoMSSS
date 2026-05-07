@@ -125,6 +125,7 @@ fun EmotionAnalysisScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp), // Removed paddingValues since the Scaffold is gone
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -154,7 +155,7 @@ fun EmotionAnalysisScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -162,6 +163,7 @@ fun EmotionAnalysisScreen(
                 text = "THE SONG CURRENTLY IS:",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -199,7 +201,7 @@ fun EmotionAnalysisScreen(
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
-                                .background(Color.White, RoundedCornerShape(4.dp))
+                                .background(MaterialTheme.colorScheme.onPrimary, RoundedCornerShape(4.dp))
                         )
                         Column(
                             modifier = Modifier
@@ -212,7 +214,7 @@ fun EmotionAnalysisScreen(
                         ) {
                             Text(
                                 text = currentSong?.title ?: "Unknown",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onSecondary,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
                                 maxLines = 1,
@@ -223,7 +225,7 @@ fun EmotionAnalysisScreen(
                             )
                             Text(
                                 text = currentSong?.artist ?: "Unknown Artist",
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f),
                                 fontSize = 12.sp,
                                 maxLines = 1,
                                 modifier = Modifier.clickable(
@@ -247,7 +249,7 @@ fun EmotionAnalysisScreen(
                                 } else {
                                     "Play"
                                 },
-                                tint = Color.White
+                                tint = MaterialTheme.colorScheme.onSecondary
                             )
                         }
                     }
@@ -261,6 +263,7 @@ fun EmotionAnalysisScreen(
                     text = "THE EMOTION DETECTED IS:",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
 
@@ -285,6 +288,7 @@ fun EmotionAnalysisScreen(
                     text = "SIGNALS ARE PERCEIVING:",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = 12.dp)
                 )
 
@@ -350,7 +354,7 @@ private fun SignalPerceptionPanel(
                 "No live wearable signal detected yet."
             },
             fontSize = 12.sp,
-            color = Color.Gray,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
         )
@@ -366,7 +370,7 @@ private fun SignalLine(
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        color = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.LightGray.copy(alpha = 0.25f),
+        color = if (active) MaterialTheme.colorScheme.primary.copy(alpha = 0.10f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
         shape = RoundedCornerShape(8.dp)
     ) {
         Row(
@@ -377,13 +381,13 @@ private fun SignalLine(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text(text = "$samples samples", fontSize = 11.sp, color = Color.Gray)
+                Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(text = "$samples samples", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
                 text = value,
                 fontSize = 14.sp,
-                color = if (active) MaterialTheme.colorScheme.primary else Color.Gray,
+                color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Medium
             )
         }

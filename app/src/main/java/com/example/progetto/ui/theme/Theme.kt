@@ -15,12 +15,16 @@ private val DarkColorScheme = darkColorScheme(
     primary = HeartPurple,
     secondary = HeartLightPurple,
     tertiary = Color.White,
-    background = Color(0xFF121212),
-    surface = Color(0xFF121212),
+    background = HeartDarkBackground,
+    surface = HeartDarkSurface,
     onPrimary = Color.White,
     onSecondary = Color.Black,
-    onBackground = Color.White,
-    onSurface = Color.White
+    onBackground = HeartOnSurfaceDark,
+    onSurface = HeartOnSurfaceDark,
+    surfaceVariant = Color(0xFF333333),
+    onSurfaceVariant = Color.LightGray,
+    outline = Color.Gray,
+    outlineVariant = Color(0xFF444444)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -31,8 +35,12 @@ private val LightColorScheme = lightColorScheme(
     surface = Color.White,
     onPrimary = Color.White,
     onSecondary = Color.Black,
-    onBackground = Color.Black,
-    onSurface = Color.Black
+    onBackground = HeartOnSurfaceLight,
+    onSurface = HeartOnSurfaceLight,
+    surfaceVariant = Color(0xFFF0F0F0),
+    onSurfaceVariant = Color.Gray,
+    outline = Color.LightGray,
+    outlineVariant = Color(0xFFEEEEEE)
 )
 
 @Composable

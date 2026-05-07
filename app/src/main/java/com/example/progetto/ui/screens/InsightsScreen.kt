@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,7 @@ fun InsightsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -61,6 +63,8 @@ fun StatisticalAnalysisContent(
 ) {
     val selectedFilter by viewModel.selectedFilter.collectAsState()
     val chartData by viewModel.chartData.collectAsState()
+    val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
+    val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     val filterOptions = listOf("App Detected", "User Experienced")
 
@@ -107,7 +111,7 @@ fun StatisticalAnalysisContent(
                 if (totalData == 0f) {
                     // EMPTY STATE: Draw a light gray background circle if there's no data
                     drawArc(
-                        color = Color.LightGray.copy(alpha = 0.3f),
+                        color = onSurfaceVariantColor.copy(alpha = 0.3f),
                         startAngle = 0f,
                         sweepAngle = 360f,
                         useCenter = false,
@@ -128,7 +132,7 @@ fun StatisticalAnalysisContent(
 
                     // Set up the paintbrush for the native text
                     val textPaint = Paint().apply {
-                        color = android.graphics.Color.BLACK
+                        color = onSurfaceColor
                         textAlign = Paint.Align.CENTER
                         textSize = 45f // Adjust this size if you want the text larger or smaller
                         typeface = Typeface.DEFAULT_BOLD
@@ -172,7 +176,7 @@ fun StatisticalAnalysisContent(
 
             // Draw the empty state text if there is no data
             if (totalData == 0f) {
-                Text("No Data", color = Color.Gray, fontWeight = FontWeight.Medium)
+                Text("No Data", color = onSurfaceVariantColor, fontWeight = FontWeight.Medium)
             }
         }
 
@@ -201,7 +205,7 @@ fun StatisticalAnalysisContent(
                     Text(
                         text = option,
                         fontSize = 12.sp,
-                        color = if (isSelected) Color.White else Color.Black,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                     )
                 }

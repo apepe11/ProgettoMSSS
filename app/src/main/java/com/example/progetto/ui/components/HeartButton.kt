@@ -16,14 +16,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.progetto.ui.theme.HeartPurple
 
+import androidx.compose.material3.MaterialTheme
+
 @Composable
 fun HeartButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    containerColor: Color = HeartPurple
+    containerColor: Color = Color.Unspecified
 ) {
+    val resolvedColor = if (containerColor == Color.Unspecified) MaterialTheme.colorScheme.primary else containerColor
+
     Button(
         onClick = onClick,
         enabled = enabled,
@@ -35,7 +39,7 @@ fun HeartButton(
             },
         shape = RoundedCornerShape(28.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = containerColor,
+            containerColor = resolvedColor,
             contentColor = Color.White
         )
     ) {
