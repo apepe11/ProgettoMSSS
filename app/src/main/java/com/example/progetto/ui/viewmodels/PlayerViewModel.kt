@@ -5,7 +5,7 @@ import android.media.MediaPlayer
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.progetto.data.RetrofitClient
+import com.example.progetto.data.repositories.PlaylistRepository
 import com.example.progetto.data.BackendUrlProvider
 import com.example.progetto.data.SongResponse
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PlayerViewModel : ViewModel() {
+    private val playlistRepository = PlaylistRepository()
 
     private val _currentSongId = MutableStateFlow<String?>(null)
     val currentSongId: StateFlow<String?> = _currentSongId
@@ -160,7 +161,7 @@ class PlayerViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.playlistApiService.toggleFavorite(sId, mapOf("user_id" to uId))
+                val response = playlistRepository.toggleFavorite(sId, mapOf("user_id" to uId))
                 if (response.isSuccessful) {
                     val body = response.body()
                     Log.d("PlayerViewModel", "toggleFavorite successo: $body")
@@ -180,7 +181,7 @@ class PlayerViewModel : ViewModel() {
     private fun checkFavoriteStatus(sId: String, uId: String) {
         viewModelScope.launch {
             try {
-                val response = RetrofitClient.playlistApiService.checkFavorite(sId, uId)
+                val response = playlistRepository.checkFavorite(sId, uId)
                 if (response.isSuccessful) {
                     val body = response.body()
                     Log.d("PlayerViewModel", "checkFavoriteStatus: $body")

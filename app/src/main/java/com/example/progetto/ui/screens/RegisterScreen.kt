@@ -25,12 +25,16 @@ import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.LoginUiState
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+
 @Composable
 fun RegisterScreen(
     onNavigateBack: () -> Unit = {},
     onRegisterSuccess: () -> Unit = {},
     viewModel: AuthViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     // 2. CHANGED 'remember' TO 'rememberSaveable'
     var username by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
@@ -57,7 +61,7 @@ fun RegisterScreen(
     ) {
         // 1. Titolo
         Text(
-            text = "Subscribe...",
+            text = stringResource(R.string.register_title),
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
@@ -67,12 +71,12 @@ fun RegisterScreen(
         )
 
         // 2. Campi di Input
-        HeartTextField(value = username, onValueChange = { username = it }, label = "Username")
-        HeartTextField(value = email, onValueChange = { email = it }, label = "Email")
-        HeartTextField(value = password, onValueChange = { password = it }, label = "Password", isPassword = true)
-        HeartTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = "Confirm Password", isPassword = true)
+        HeartTextField(value = username, onValueChange = { username = it }, label = stringResource(R.string.register_username_label))
+        HeartTextField(value = email, onValueChange = { email = it }, label = stringResource(R.string.register_email_label))
+        HeartTextField(value = password, onValueChange = { password = it }, label = stringResource(R.string.register_password_label), isPassword = true)
+        HeartTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = stringResource(R.string.register_confirm_password_label), isPassword = true)
 
-        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message else null
+        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message.asString() else null
 
         if (displayError != null) {
             Text(
@@ -90,12 +94,12 @@ fun RegisterScreen(
 
         // 3. Bottone Sign Up
         HeartButton(
-            text = if (uiState is LoginUiState.Loading) "Registering..." else "Sign up",
+            text = if (uiState is LoginUiState.Loading) stringResource(R.string.register_registering) else stringResource(R.string.register_sign_up),
             onClick = {
                 if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
-                    localError = "Please fill all fields"
+                    localError = context.getString(R.string.register_error_fields)
                 } else if (password != confirmPassword) {
-                    localError = "Passwords do not match"
+                    localError = context.getString(R.string.register_error_passwords_mismatch)
                 } else {
                     localError = null
                     viewModel.register(username, email, password, "android_device_1")
@@ -104,6 +108,7 @@ fun RegisterScreen(
             enabled = uiState !is LoginUiState.Loading
         )
 
+        val loginLabel = stringResource(R.string.register_go_to_login_description)
         TextButton(
             onClick = {
                 viewModel.resetState()
@@ -111,14 +116,14 @@ fun RegisterScreen(
             },
             modifier = Modifier.semantics {
                 role = Role.Button
-                onClick(label = "Go to login screen") { 
+                onClick(label = loginLabel) { 
                     viewModel.resetState()
                     onNavigateBack()
                     true 
                 }
             }
         ) {
-            Text("Already have an account? Sign in", color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.register_already_have_account), color = MaterialTheme.colorScheme.primary)
         }
     }
 }

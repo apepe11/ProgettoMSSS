@@ -15,6 +15,12 @@ import androidx.compose.ui.unit.dp
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 import java.util.Locale
 
+import androidx.compose.ui.res.stringResource
+
+import androidx.compose.ui.res.stringResource
+import androidx.constraintlayout.compose.ConstraintLayout
+import com.example.progetto.R
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MusicPlayerScreen(
@@ -30,11 +36,9 @@ fun MusicPlayerScreen(
     val duration by viewModel.duration.collectAsState()
     val isFavorite by viewModel.isFavorite.collectAsState()
     
-    // Osserviamo i cambiamenti del titolo e artista dal ViewModel perché possono cambiare con Next/Prev
     val actualTitle by viewModel.currentSongTitle.collectAsState()
     val actualArtist by viewModel.currentArtistName.collectAsState()
     
-    // Carichiamo la canzone solo se è diversa da quella attualmente in canna
     LaunchedEffect(songUrl) {
         if (songUrl.isNotEmpty()) {
             viewModel.playSong(songTitle, artistName, songUrl, songId)
@@ -44,28 +48,36 @@ fun MusicPlayerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Music Player") },
+                title = { Text(stringResource(R.string.player_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Close player"
+                            contentDescription = stringResource(R.string.player_close_description)
                         )
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Column(
+        ConstraintLayout(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(24.dp)
         ) {
+            val (cover, info, controls, progress) = createRefs()
+
+            // 1. Cover Image
             Surface(
-                modifier = Modifier.size(220.dp),
+                modifier = Modifier
+                    .size(260.dp)
+                    .constrainAs(cover) {
+                        top.linkTo(parent.top)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                        bottom.linkTo(info.top)
+                    },
                 color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = MaterialTheme.shapes.medium
             ) {
@@ -73,16 +85,21 @@ fun MusicPlayerScreen(
                     Icon(
                         imageVector = Icons.Default.MusicNote,
                         contentDescription = null,
-                        modifier = Modifier.size(76.dp),
+                        modifier = Modifier.size(80.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
-
+            // 2. Song Info (Title, Artist, Favorite)
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .constrainAs(info) {
+                        top.linkTo(cover.bottom, margin = 32.dp)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    },
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -95,36 +112,37 @@ fun MusicPlayerScreen(
                     Text(text = actualArtist, style = MaterialTheme.typography.bodyLarge)
                 }
 
+                val favoriteStateDescription = if (isFavorite) stringResource(R.string.player_added_favorite) else stringResource(R.string.player_removed_favorite)
                 IconButton(
                     onClick = { viewModel.toggleFavorite() },
                     modifier = Modifier.semantics {
-                        stateDescription = if (isFavorite) "Added to favourite" else "Removed to favourite"
+                        stateDescription = favoriteStateDescription
                     }
                 ) {
                     Icon(
                         imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = "Preferiti",
+                        contentDescription = stringResource(R.string.player_favorites_description),
                         tint = if (isFavorite) Color.Red else LocalContentColor.current
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Progress Bar (Slider)
-            Column(modifier = Modifier.fillMaxWidth()) {
+            // 3. Progress Section
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .constrainAs(progress) {
+                        top.linkTo(info.bottom, margin = 24.dp)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    }
+            ) {
+                val progressDescription = stringResource(R.string.player_progress_description)
                 Slider(
                     value = currentPosition.toFloat(),
                     onValueChange = { viewModel.seekTo(it.toInt()) },
                     valueRange = 0f..(if (duration > 0) duration.toFloat() else 1f),
-                    modifier = Modifier.semantics { 
-                        contentDescription = "Song progress"
-                    },
-                    colors = SliderDefaults.colors(
-                        thumbColor = MaterialTheme.colorScheme.primary,
-                        activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
+                    modifier = Modifier.semantics { contentDescription = progressDescription }
                 )
                 Row(
                     modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { },
@@ -135,21 +153,28 @@ fun MusicPlayerScreen(
                     Text(
                         text = currentTime, 
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.semantics { contentDescription = "Current position: $currentTime" }
+                        modifier = Modifier.semantics { contentDescription = stringResource(R.string.player_current_position_description, currentTime) }
                     )
                     Text(
                         text = totalTime, 
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.semantics { contentDescription = "Total duration: $totalTime" }
+                        modifier = Modifier.semantics { contentDescription = stringResource(R.string.player_total_duration_description, totalTime) }
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
-
+            // 4. Playback Controls
             Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .constrainAs(controls) {
+                        bottom.linkTo(parent.bottom, margin = 24.dp)
+                        top.linkTo(progress.bottom)
+                        start.linkTo(parent.start)
+                        end.linkTo(parent.end)
+                    },
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(28.dp)
+                horizontalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterHorizontally)
             ) {
                 IconButton(
                     onClick = { viewModel.playPrevious() },
@@ -157,20 +182,19 @@ fun MusicPlayerScreen(
                 ) {
                     Icon(
                         Icons.Default.SkipPrevious,
-                        contentDescription = "Previous song",
+                        contentDescription = stringResource(R.string.player_previous_description),
                         modifier = Modifier.size(36.dp)
                     )
                 }
 
+                val playPauseDescription = if (isPlaying) stringResource(R.string.player_pause_description) else stringResource(R.string.player_play_description)
                 FilledIconButton(
-                    onClick = {
-                        viewModel.togglePlayPause()
-                    },
+                    onClick = { viewModel.togglePlayPause() },
                     modifier = Modifier.size(82.dp)
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        contentDescription = playPauseDescription,
                         modifier = Modifier.size(44.dp)
                     )
                 }
@@ -181,7 +205,7 @@ fun MusicPlayerScreen(
                 ) {
                     Icon(
                         Icons.Default.SkipNext,
-                        contentDescription = "Next song",
+                        contentDescription = stringResource(R.string.player_next_description),
                         modifier = Modifier.size(36.dp)
                     )
                 }

@@ -41,13 +41,10 @@ import androidx.core.content.ContextCompat
 import com.example.progetto.ui.screens.*
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.utils.SensorAvailability
-import com.example.progetto.utils.EegSignalTracker
 import com.example.progetto.utils.SensorCollectionViewModel
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 import kotlinx.coroutines.launch
-import mylibrary.mindrove.SensorData
-import mylibrary.mindrove.ServerManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,6 +62,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+import androidx.compose.ui.res.stringResource
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalDrawerNavigation() {
@@ -76,34 +75,9 @@ fun GlobalDrawerNavigation() {
     val authViewModel: AuthViewModel = viewModel()
     val playerViewModel: PlayerViewModel = viewModel()
     val context = LocalContext.current
+    
+    // Logic moved to ViewModel (Point 1: Separation of Concerns)
     val sensorViewModel = remember { SensorCollectionViewModel.get(context) }
-    var loggedFirstEegSample by remember { mutableStateOf(false) }
-    val serverManager = remember {
-        ServerManager { sensorData: SensorData ->
-            if (!loggedFirstEegSample) {
-                loggedFirstEegSample = true
-                Log.d("MindRove", "First EEG sample: measurements=${sensorData.numberOfMeasurement}")
-            }
-            EegSignalTracker.markSample(System.currentTimeMillis())
-            sensorViewModel.onEegDataReceived(0, sensorData.channel1.toDouble())
-            sensorViewModel.onEegDataReceived(1, sensorData.channel2.toDouble())
-            sensorViewModel.onEegDataReceived(2, sensorData.channel3.toDouble())
-            sensorViewModel.onEegDataReceived(3, sensorData.channel4.toDouble())
-            sensorViewModel.onEegDataReceived(4, sensorData.channel5.toDouble())
-            sensorViewModel.onEegDataReceived(5, sensorData.channel6.toDouble())
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        serverManager.start()
-        Log.d("MindRove", "ServerManager started, ip=${serverManager.ipAddress}")
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            serverManager.stop()
-        }
-    }
 
     // Track current route to know when to show the top menu
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -111,7 +85,7 @@ fun GlobalDrawerNavigation() {
 
     // Usiamo remember per reagire ai cambiamenti nel ViewModel
     val currentUser = authViewModel.currentUser
-    val username = currentUser?.username ?: "Guest"
+    val username = currentUser?.username ?: stringResource(R.string.nav_guest)
 
     // Sincronizza lo userId nel PlayerViewModel
     LaunchedEffect(currentUser) {
@@ -155,11 +129,11 @@ fun GlobalDrawerNavigation() {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         val allMenuItems = listOf(
-                            Triple("Emotion analysis", Icons.Default.Analytics, "emotion_analysis"),
-                            Triple("Listening Mode", Icons.Default.Headset, "listening_mode"),
-                            Triple("Your feelings", Icons.Default.Favorite, "your_feelings"),
-                            Triple("Insights", Icons.Default.BarChart, "insights"),
-                            Triple("Favourite Songs", Icons.Default.LibraryMusic, "favourite_songs")
+                            Triple(stringResource(R.string.nav_emotion_analysis), Icons.Default.Analytics, "emotion_analysis"),
+                            Triple(stringResource(R.string.nav_listening_mode), Icons.Default.Headset, "listening_mode"),
+                            Triple(stringResource(R.string.nav_your_feelings), Icons.Default.Favorite, "your_feelings"),
+                            Triple(stringResource(R.string.nav_insights), Icons.Default.BarChart, "insights"),
+                            Triple(stringResource(R.string.nav_favourite_songs), Icons.Default.LibraryMusic, "favourite_songs")
                         )
 
                         allMenuItems.forEach { (label, icon, route) ->
@@ -172,7 +146,7 @@ fun GlobalDrawerNavigation() {
                                     ) {
                                         Toast.makeText(
                                             context,
-                                            "Connect EEG and watch to use Emotion Analysis.",
+                                            context.getString(R.string.toast_connect_sensors),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         return@NavigationDrawerItem
@@ -191,7 +165,7 @@ fun GlobalDrawerNavigation() {
 
                         Spacer(modifier = Modifier.weight(1f))
                         NavigationDrawerItem(
-                            label = { Text("Logout", color = Color.Red) },
+                            label = { Text(stringResource(R.string.nav_logout), color = Color.Red) },
                             selected = false,
                             onClick = {
                                 scope.launch {
@@ -223,7 +197,7 @@ fun GlobalDrawerNavigation() {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         ComposeImage(
                                             painter = painterResource(id = R.drawable.logo),
-                                            contentDescription = "Logo",
+                                            contentDescription = stringResource(R.string.nav_logo_description),
                                             modifier = Modifier
                                                 .size(80.dp)
                                                 .clickable {
@@ -234,14 +208,14 @@ fun GlobalDrawerNavigation() {
                                             contentScale = ContentScale.Fit
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("HeartMusic", fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
+                                        Text(stringResource(R.string.app_name), fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
                                     }
                                 },
                                 actions = {
                                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                         Icon(
                                             imageVector = Icons.Default.MoreVert,
-                                            contentDescription = "Menu",
+                                            contentDescription = stringResource(R.string.nav_menu_description),
                                             tint = MaterialTheme.colorScheme.onBackground
                                         )
                                     }
@@ -267,9 +241,15 @@ fun GlobalDrawerNavigation() {
     }
 }
 
+import android.content.Intent
+import android.provider.Settings
+
 @Composable
 private fun EnsureRuntimePermissions() {
     val context = LocalContext.current
+    var showRationale by remember { mutableStateOf(false) }
+    var showSettingsRationale by remember { mutableStateOf(false) }
+
     val requiredPermissions = remember {
         buildList {
             add(Manifest.permission.BODY_SENSORS)
@@ -281,17 +261,96 @@ private fun EnsureRuntimePermissions() {
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = { }
+        onResult = { result ->
+            val allGranted = result.values.all { it }
+            if (!allGranted) {
+                // If not all granted, check if any was permanently denied
+                val permanentlyDenied = requiredPermissions.any { permission ->
+                    ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED &&
+                    (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(permission) == false
+                }
+                if (permanentlyDenied) {
+                    showSettingsRationale = true
+                } else {
+                    Toast.makeText(context, context.getString(R.string.permission_denied_toast), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
     )
 
-    LaunchedEffect(Unit) {
+    fun checkAndRequestPermissions() {
         val missingPermissions = requiredPermissions.filter { permission ->
             ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED
         }
 
         if (missingPermissions.isNotEmpty()) {
-            launcher.launch(missingPermissions.toTypedArray())
+            val shouldShowRationale = missingPermissions.any { 
+                (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(it) == true 
+            }
+            
+            if (shouldShowRationale) {
+                showRationale = true
+            } else {
+                // Check if they are permanently denied before asking
+                val isPermanentlyDenied = missingPermissions.any { 
+                    (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(it) == false 
+                }
+                
+                // On some Android versions, if we never asked, shouldShowRequestPermissionRationale is false.
+                // So we only show settings if we are sure it's a denial.
+                // A better way is to just launch the request, and handle the result.
+                launcher.launch(missingPermissions.toTypedArray())
+            }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        checkAndRequestPermissions()
+    }
+
+    if (showRationale) {
+        AlertDialog(
+            onDismissRequest = { showRationale = false },
+            title = { Text(stringResource(R.string.permission_title)) },
+            text = { Text(stringResource(R.string.permission_rationale)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showRationale = false
+                    launcher.launch(requiredPermissions.toTypedArray())
+                }) {
+                    Text(stringResource(R.string.permission_grant))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRationale = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (showSettingsRationale) {
+        AlertDialog(
+            onDismissRequest = { showSettingsRationale = false },
+            title = { Text(stringResource(R.string.permission_title)) },
+            text = { Text(stringResource(R.string.permission_settings_rationale)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSettingsRationale = false
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }) {
+                    Text(stringResource(R.string.permission_settings))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSettingsRationale = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
     }
 }
 

@@ -23,6 +23,9 @@ import com.example.progetto.data.UserPreferences
 import kotlinx.coroutines.flow.first
 import kotlin.math.roundToInt
 
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewEmotionScreen(
@@ -33,7 +36,13 @@ fun ReviewEmotionScreen(
     feelingViewModel: FeelingViewModel = viewModel()
 ) {
     // 1. Dropdown State Variables
-    val emotionsList = listOf("Happy", "Sad", "Anxious", "Calm", "Energetic")
+    val emotionsList = listOf(
+        stringResource(R.string.emotion_happy),
+        stringResource(R.string.emotion_sad),
+        stringResource(R.string.emotion_anxious),
+        stringResource(R.string.emotion_calm),
+        stringResource(R.string.emotion_energetic)
+    )
     var expanded by remember { mutableStateOf(false) }
     var selectedEmotion by remember { mutableStateOf("") }
 
@@ -48,12 +57,19 @@ fun ReviewEmotionScreen(
         val prefs = UserPreferences(context)
         value = prefs.lastSessionId.first()
     }
+
+    val happy = stringResource(R.string.emotion_happy)
+    val sad = stringResource(R.string.emotion_sad)
+    val anxious = stringResource(R.string.emotion_anxious)
+    val calm = stringResource(R.string.emotion_calm)
+    val energetic = stringResource(R.string.emotion_energetic)
+
     val valenceByEmotion = mapOf(
-        "Happy" to 8,
-        "Sad" to 2,
-        "Anxious" to 3,
-        "Calm" to 6,
-        "Energetic" to 7
+        happy to 8,
+        sad to 2,
+        anxious to 3,
+        calm to 6,
+        energetic to 7
     )
 
     // OUTER COLUMN: Holds everything. Notice the Scaffold is completely gone!
@@ -75,7 +91,7 @@ fun ReviewEmotionScreen(
             // Domanda 1: The Dropdown Menu
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "How do you feel?",
+                    text = stringResource(R.string.review_feel_question),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -89,7 +105,7 @@ fun ReviewEmotionScreen(
                         value = selectedEmotion,
                         onValueChange = {}, // Left empty because it's read-only
                         readOnly = true,
-                        placeholder = { Text("Select an emotion") },
+                        placeholder = { Text(stringResource(R.string.review_select_emotion)) },
                         trailingIcon = {
                             ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
                         },
@@ -127,7 +143,7 @@ fun ReviewEmotionScreen(
             // Domanda 2: Strength Slider
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "How strong is your emotion?",
+                    text = stringResource(R.string.review_strength_question),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.padding(bottom = 8.dp)
@@ -149,7 +165,7 @@ fun ReviewEmotionScreen(
             OutlinedTextField(
                 value = description,
                 onValueChange = { description = it },
-                label = { Text("Describe your feeling") },
+                label = { Text(stringResource(R.string.review_describe_feeling)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp),
@@ -171,21 +187,21 @@ fun ReviewEmotionScreen(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             HeartButton(
-                text = "Go back",
+                text = stringResource(R.string.review_go_back),
                 onClick = onNavigateBack,
                 modifier = Modifier.weight(1f),
                 containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
             )
             HeartButton(
-                text = "Save feeling",
+                text = stringResource(R.string.review_save_feeling),
                 onClick = {
                     val resolvedUserId = userId
                     if (resolvedUserId.isNullOrBlank()) {
-                        errorText = "Missing user session. Please log in again."
+                        errorText = context.getString(R.string.review_error_session)
                         return@HeartButton
                     }
                     if (selectedEmotion.isBlank()) {
-                        errorText = "Select an emotion before saving."
+                        errorText = context.getString(R.string.review_error_select)
                         return@HeartButton
                     }
                     val valence = valenceByEmotion[selectedEmotion] ?: 5

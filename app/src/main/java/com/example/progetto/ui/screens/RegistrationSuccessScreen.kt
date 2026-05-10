@@ -20,6 +20,8 @@ import com.example.progetto.R
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.theme.HeartMusicTheme
 
+import androidx.compose.ui.res.stringResource
+
 @Composable
 fun RegistrationSuccessScreen(
     onNavigateToLogin: () -> Unit = {}
@@ -33,7 +35,7 @@ fun RegistrationSuccessScreen(
     ) {
         Image(
             painter = painterResource(id = R.drawable.logo),
-            contentDescription = "Logo",
+            contentDescription = stringResource(R.string.reg_success_logo_description),
             modifier = Modifier
                 .size(150.dp)
                 .clip(CircleShape),
@@ -43,7 +45,7 @@ fun RegistrationSuccessScreen(
         Spacer(modifier = Modifier.height(48.dp))
 
         Text(
-            text = "We've just sent you an email.\ncheck your inbox...",
+            text = stringResource(R.string.reg_success_message),
             fontSize = 20.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,
@@ -54,7 +56,7 @@ fun RegistrationSuccessScreen(
         Spacer(modifier = Modifier.height(60.dp))
 
         HeartButton(
-            text = "Go to sign in",
+            text = stringResource(R.string.reg_success_go_to_signin),
             onClick = onNavigateToLogin,
             modifier = Modifier.fillMaxWidth(0.8f)
         )

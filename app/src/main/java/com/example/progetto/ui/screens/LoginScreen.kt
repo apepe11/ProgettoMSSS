@@ -29,6 +29,10 @@ import com.example.progetto.ui.viewmodels.LoginUiState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.semantics.LiveRegionMode
 
+import androidx.compose.ui.res.stringResource
+
+import androidx.compose.ui.platform.LocalContext
+
 @Composable
 fun LoginScreen(
     onNavigateBack: () -> Unit = {},
@@ -37,6 +41,7 @@ fun LoginScreen(
     onNavigateToRegister: () -> Unit = {},
     viewModel:AuthViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
@@ -58,7 +63,7 @@ fun LoginScreen(
     ) {
         // 1. Titolo
         Text(
-            text = "HeartMusic",
+            text = stringResource(R.string.login_title),
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 40.dp),
@@ -70,7 +75,7 @@ fun LoginScreen(
         // 2. Logo (più piccolo rispetto alla Welcome)
         Image(
             painter = painterResource(id = R.drawable.logo),
-            contentDescription = "HeartMusic Logo",
+            contentDescription = stringResource(R.string.login_logo_description),
             modifier = Modifier
                 .size(120.dp)
                 .clip(CircleShape),
@@ -83,19 +88,19 @@ fun LoginScreen(
         HeartTextField(
             value = email,
             onValueChange = { email = it },
-            label = "Email or Username"
+            label = stringResource(R.string.login_email_username_label)
         )
 
         HeartTextField(
             value = password,
             onValueChange = { password = it },
-            label = "Password",
+            label = stringResource(R.string.login_password_label),
             isPassword = true
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message else null
+        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message.asString() else null
         
         if (displayError != null) {
             Text(
@@ -112,10 +117,10 @@ fun LoginScreen(
 
         // 4. Bottone Sign In
         HeartButton(
-            text = if (uiState is LoginUiState.Loading) "Signing in..." else "Sign in",
+            text = if (uiState is LoginUiState.Loading) stringResource(R.string.login_signing_in) else stringResource(R.string.login_sign_in),
             onClick = {
                 if (email.isEmpty() || password.isEmpty()) {
-                    localError = "Please enter username and password"
+                    localError = context.getString(R.string.login_error_empty)
                 } else {
                     localError = null
                     viewModel.login(email, password)
@@ -128,32 +133,34 @@ fun LoginScreen(
 
         // 5. Opzioni extra
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            val resetPasswordLabel = stringResource(R.string.login_reset_password_description)
             Text(
-                text = "Forgot your password?",
+                text = stringResource(R.string.login_forgot_password),
                 fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .padding(bottom = 8.dp)
                     .clickable(
                         role = Role.Button,
-                        onClickLabel = "Reset your password"
+                        onClickLabel = resetPasswordLabel
                     ) { onNavigateToForgotPassword() }
             )
             
+            val createAccountLabel = stringResource(R.string.login_create_account_description)
             Row(modifier = Modifier.semantics(mergeDescendants = true) { }) {
                 Text(
-                    text = "Don't have an account? ",
+                    text = stringResource(R.string.login_no_account),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "Sign up",
+                    text = stringResource(R.string.welcome_sign_up),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.clickable(
                         role = Role.Button,
-                        onClickLabel = "Create a new account"
+                        onClickLabel = createAccountLabel
                     ) { onNavigateToRegister() }
                 )
             }

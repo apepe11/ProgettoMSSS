@@ -5,12 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.progetto.data.PlaylistResponse
 import com.example.progetto.data.SongResponse
-import com.example.progetto.data.RetrofitClient
+import com.example.progetto.data.repositories.PlaylistRepository
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class ListeningViewModel : ViewModel() {
+    private val playlistRepository = PlaylistRepository()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery
@@ -54,7 +55,7 @@ class ListeningViewModel : ViewModel() {
             try {
                 // Ricerca Playlist
                 Log.d("ListeningVM", "Fetching playlists with query='$query'")
-                val playlistResponse = RetrofitClient.playlistApiService.getPlaylists(query)
+                val playlistResponse = playlistRepository.getPlaylists(query)
                 Log.d("ListeningVM", "Playlist response code: ${playlistResponse.code()}, successful: ${playlistResponse.isSuccessful}")
                 if (playlistResponse.isSuccessful) {
                     val playlists = playlistResponse.body()?.playlists ?: emptyList()
@@ -66,7 +67,7 @@ class ListeningViewModel : ViewModel() {
 
                 // Ricerca Canzoni
                 Log.d("ListeningVM", "Fetching songs with query='$query'")
-                val songResponse = RetrofitClient.playlistApiService.getSongs(query)
+                val songResponse = playlistRepository.getSongs(query)
                 Log.d("ListeningVM", "Song response code: ${songResponse.code()}, successful: ${songResponse.isSuccessful}")
                 if (songResponse.isSuccessful) {
                     val songs = songResponse.body()?.songs ?: emptyList()

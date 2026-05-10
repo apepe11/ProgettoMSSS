@@ -27,6 +27,9 @@ import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.ListeningViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
 @Composable
 fun ListeningModeScreen(
     onNavigateToPlaylist: (String) -> Unit = {},
@@ -54,7 +57,7 @@ fun ListeningModeScreen(
     ) {
         // 1. Page Title
         Text(
-            text = "Listening Mode",
+            text = stringResource(R.string.listening_mode_title),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -65,7 +68,7 @@ fun ListeningModeScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { viewModel.onSearchQueryChange(it) },
-            placeholder = { Text("Search for Playlist, Emotion, Song", fontSize = 12.sp) },
+            placeholder = { Text(stringResource(R.string.listening_mode_search_placeholder), fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
@@ -99,7 +102,7 @@ fun ListeningModeScreen(
                 if (playlists.isNotEmpty()) {
                     item {
                         Text(
-                            text = "Playlists",
+                            text = stringResource(R.string.listening_mode_playlists_header),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary
@@ -133,7 +136,7 @@ fun ListeningModeScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Emotion: ${playlist.emotion}",
+                                    text = stringResource(R.string.playlist_emotion_prefix, playlist.emotion),
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -146,7 +149,7 @@ fun ListeningModeScreen(
                     item {
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Songs",
+                            text = stringResource(R.string.listening_mode_songs_header),
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.secondary
@@ -222,14 +225,14 @@ fun EmptyPlaylistsView(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Nessuna playlist trovata",
+            text = stringResource(R.string.listening_mode_no_results),
             fontSize = 18.sp,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         Text(
-            text = "Prova a cercare un altro nome, emozione o brano.",
+            text = stringResource(R.string.listening_mode_try_again),
             fontSize = 14.sp,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
             textAlign = TextAlign.Center
@@ -285,12 +288,12 @@ fun MiniPlayer(
             IconButton(onClick = onTogglePlay) {
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = null,
+                    contentDescription = if (isPlaying) stringResource(R.string.player_pause_description) else stringResource(R.string.player_play_description),
                     tint = MaterialTheme.colorScheme.onPrimary
                 )
             }
             IconButton(onClick = { }) {
-                Icon(Icons.Default.SkipNext, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary)
+                Icon(Icons.Default.SkipNext, contentDescription = stringResource(R.string.player_next_description), tint = MaterialTheme.colorScheme.onPrimary)
             }
         }
     }

@@ -21,6 +21,8 @@ import com.example.progetto.R
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.theme.HeartMusicTheme
 
+import androidx.compose.ui.res.stringResource
+
 @Composable
 fun WelcomeScreen(
     onNavigateToLogin: () -> Unit = {},
@@ -35,7 +37,7 @@ fun WelcomeScreen(
     ) {
         // 1. Titolo
         Text(
-            text = "HeartMusic",
+            text = stringResource(R.string.welcome_title),
             fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 60.dp),
@@ -50,7 +52,7 @@ fun WelcomeScreen(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
-                contentDescription = "HeartMusic App Logo",
+                contentDescription = stringResource(R.string.welcome_logo_description),
                 modifier = Modifier
                     .size(300.dp)
                     .clip(CircleShape),
@@ -60,7 +62,7 @@ fun WelcomeScreen(
             Spacer(modifier = Modifier.height(24.dp))
             
             Text(
-                text = "The app that listen to emotion...",
+                text = stringResource(R.string.welcome_subtitle),
                 fontSize = 22.sp, // Scritta più grande
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center,
@@ -76,12 +78,12 @@ fun WelcomeScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             HeartButton(
-                text = "Sign up",
+                text = stringResource(R.string.welcome_sign_up),
                 onClick = onNavigateToRegister
             )
             
             HeartButton(
-                text = "Sign in",
+                text = stringResource(R.string.welcome_sign_in),
                 onClick = onNavigateToLogin
             )
         }

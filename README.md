@@ -32,7 +32,13 @@ The project follows a modern **Full-Stack** approach, clearly separating respons
 *   **Database**: **PostgreSQL**, a robust relational database for managing users, sessions, and playlists.
 *   **Containerization**: The entire backend is packaged via **Docker** and **Docker Compose**, allowing for quick and identical installation on any machine (Database + Server).
 *   **Security**: Password encryption via `werkzeug.security` and session management.
-*   **Automation**: Automatic email system for registration confirmation.
+*   **Automation**: Setup for background tasks and potential future notifications.
+
+### ♿ Accessibility & Best Practices
+The application is designed to be inclusive and maintainable, following official Android guidelines:
+*   **Internationalization (i18n)**: Zero hardcoded strings. All user-facing text is managed via `strings.xml` resources. The app currently supports **English** and **Italian**, automatically adapting to the system language.
+*   **Adaptive Layouts**: Use of **Density-independent pixels (dp)** and **ConstraintLayout** to ensure a consistent experience across different screen sizes and densities.
+*   **Semantic Navigation**: Clear back-stack management and semantic properties (`contentDescription`, `onClickLabel`, `stateDescription`) to improve the experience for users with assistive technologies like TalkBack.
 
 ---
 

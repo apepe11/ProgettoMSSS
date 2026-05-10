@@ -1,0 +1,171 @@
+<resources>
+    <string name="app_name">HeartMusic</string>
+
+    <!-- Welcome Screen -->
+    <string name="welcome_title">HeartMusic</string>
+    <string name="welcome_logo_description">Logo App HeartMusic</string>
+    <string name="welcome_subtitle">L\'app che ascolta le tue emozioni...</string>
+    <string name="welcome_sign_up">Registrati</string>
+    <string name="welcome_sign_in">Accedi</string>
+
+    <!-- Login Screen -->
+    <string name="login_title">HeartMusic</string>
+    <string name="login_logo_description">Logo HeartMusic</string>
+    <string name="login_email_username_label">Email o Username</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_signing_in">Accesso in corso...</string>
+    <string name="login_sign_in">Accedi</string>
+    <string name="login_error_empty">Inserisci username e password</string>
+    <string name="login_forgot_password">Password dimenticata?</string>
+    <string name="login_reset_password_description">Reimposta la tua password</string>
+    <string name="login_no_account">Non hai un account? </string>
+    <string name="login_create_account_description">Crea un nuovo account</string>
+
+    <!-- Register Screen -->
+    <string name="register_title">Iscriviti...</string>
+    <string name="register_username_label">Username</string>
+    <string name="register_email_label">Email</string>
+    <string name="register_password_label">Password</string>
+    <string name="register_confirm_password_label">Conferma Password</string>
+    <string name="register_registering">Registrazione in corso...</string>
+    <string name="register_sign_up">Registrati</string>
+    <string name="register_error_fields">Per favore compila tutti i campi</string>
+    <string name="register_error_passwords_mismatch">Le password non coincidono</string>
+    <string name="register_go_to_login_description">Vai alla schermata di login</string>
+    <string name="register_already_have_account">Hai già un account? Accedi</string>
+
+    <!-- Registration Success Screen -->
+    <string name="reg_success_logo_description">Logo</string>
+    <string name="reg_success_message">Registrazione completata!\nOra puoi accedere al tuo account.</string>
+    <string name="reg_success_go_to_signin">Vai all\'accesso</string>
+
+    <!-- Home Screen -->
+    <string name="home_emotion_analysis">Analisi Emozioni</string>
+    <string name="home_emotion_analysis_subtitle">Analizza i tuoi sentimenti con la musica</string>
+    <string name="home_sensors_not_available">Collega l\'EEG e lo smartwatch per abilitare l\'Analisi delle Emozioni.</string>
+    <string name="home_listening_mode">Modalità Ascolto</string>
+    <string name="home_listening_mode_subtitle">Scopri la tua libreria</string>
+    <string name="home_open_mode_description">Apri modalità %1$s</string>
+
+    <!-- Navigation / Drawer -->
+    <string name="nav_emotion_analysis">Analisi emozioni</string>
+    <string name="nav_listening_mode">Modalità Ascolto</string>
+    <string name="nav_your_feelings">I tuoi sentimenti</string>
+    <string name="nav_insights">Statistiche</string>
+    <string name="nav_favourite_songs">Brani Preferiti</string>
+    <string name="nav_logout">Logout</string>
+    <string name="nav_guest">Ospite</string>
+    <string name="nav_menu_description">Menu</string>
+    <string name="nav_logo_description">Logo</string>
+    <string name="toast_connect_sensors">Collega l\'EEG e lo smartwatch per usare l\'Analisi delle Emozioni.</string>
+
+    <!-- Music Player Screen -->
+    <string name="player_title">Lettore Musicale</string>
+    <string name="player_close_description">Chiudi lettore</string>
+    <string name="player_added_favorite">Aggiunto ai preferiti</string>
+    <string name="player_removed_favorite">Rimosso dai preferiti</string>
+    <string name="player_favorites_description">Preferiti</string>
+    <string name="player_progress_description">Progresso brano</string>
+    <string name="player_current_position_description">Posizione attuale: %1$s</string>
+    <string name="player_total_duration_description">Durata totale: %1$s</string>
+    <string name="player_previous_description">Brano precedente</string>
+    <string name="player_next_description">Brano successivo</string>
+    <string name="player_pause_description">Pausa</string>
+    <string name="player_play_description">Play</string>
+
+    <!-- Review Emotion Screen -->
+    <string name="review_feel_question">Come ti senti?</string>
+    <string name="review_select_emotion">Seleziona un\'emozione</string>
+    <string name="review_strength_question">Quanto è forte la tua emozione?</string>
+    <string name="review_describe_feeling">Descrivi come ti senti</string>
+    <string name="review_go_back">Torna indietro</string>
+    <string name="review_save_feeling">Salva sentimento</string>
+    <string name="review_error_session">Sessione utente mancante. Effettua nuovamente l\'accesso.</string>
+    <string name="review_error_select">Seleziona un\'emozione prima di salvare.</string>
+
+    <!-- Emotions -->
+    <string name="emotion_happy">Felice</string>
+    <string name="emotion_sad">Triste</string>
+    <string name="emotion_anxious">Ansioso</string>
+    <string name="emotion_calm">Calmo</string>
+    <string name="emotion_energetic">Energico</string>
+
+    <!-- Playlist Detail Screen -->
+    <string name="playlist_back_description">Indietro</string>
+    <string name="playlist_details_title">Dettagli Playlist</string>
+    <string name="playlist_search_placeholder">Cerca Brano o Artista</string>
+    <string name="playlist_loading">Caricamento...</string>
+    <string name="playlist_emotion_prefix">Emozione: %1$s</string>
+
+    <!-- Favourite Songs Screen -->
+    <string name="favorites_title">Brani Preferiti</string>
+    <string name="favorites_empty">Nessun brano preferito ancora</string>
+    <string name="favorites_remove_description">Rimuovi dai preferiti</string>
+
+    <!-- Your Feelings Screen -->
+    <string name="feelings_title">I Tuoi Sentimenti</string>
+    <string name="feelings_empty">Nessun sentimento registrato finora.</string>
+    <string name="feelings_vibe">Vibe</string>
+    <string name="feelings_energy">Energia</string>
+    <string name="feelings_description_header">DESCRIZIONE</string>
+    <string name="feelings_detected_prefix">Emozione Rilevata:</string>
+
+    <!-- Insights Screen -->
+    <string name="insights_title">Le Tue Statistiche</string>
+    <string name="insights_app_detected">Rilevate dall\'App</string>
+    <string name="insights_user_experienced">Provate da Te</string>
+    <string name="insights_no_data">Nessun Dato</string>
+
+    <!-- Emotion Analysis Screen -->
+    <string name="emotion_analysis_warning">⚠️ EEG non in streaming o watch non collegata\nL\'analisi resta disponibile, ma i dati reali non sono attivi.</string>
+    <string name="emotion_analysis_current_song_header">IL BRANO ATTUALE È:</string>
+    <string name="emotion_analysis_unknown_song">Sconosciuto</string>
+    <string name="emotion_analysis_unknown_artist">Artista Sconosciuto</string>
+    <string name="emotion_analysis_detected_header">L\'EMOZIONE RILEVATA È:</string>
+    <string name="emotion_analysis_review_song">Recensisci il brano</string>
+    <string name="emotion_analysis_signals_header">SEGNALI RILEVATI:</string>
+    <string name="emotion_analysis_review_another">Recensisci un altro brano</string>
+    <string name="emotion_analysis_eeg_label">Attività EEG</string>
+    <string name="emotion_analysis_hr_label">Battito cardiaco</string>
+    <string name="emotion_analysis_eda_label">Conduttanza cutanea</string>
+    <string name="emotion_analysis_waiting">In attesa</string>
+    <string name="emotion_analysis_listening_live">Ascoltando i segnali fisiologici dal vivo...</string>
+    <string name="emotion_analysis_preparing">Preparazione raccolta segnali...</string>
+    <string name="emotion_analysis_no_signal">Nessun segnale wearable rilevato ancora.</string>
+    <string name="emotion_analysis_samples_count">%1$d campioni</string>
+
+    <!-- Listening Mode Screen -->
+    <string name="listening_mode_title">Modalità Ascolto</string>
+    <string name="listening_mode_search_placeholder">Cerca Playlist, Emozione, Brano</string>
+    <string name="listening_mode_playlists_header">Playlist</string>
+    <string name="listening_mode_songs_header">Brani</string>
+    <string name="listening_mode_no_results">Nessuna playlist trovata</string>
+    <string name="listening_mode_try_again">Prova a cercare un altro nome, emozione o brano.</string>
+
+    <!-- Forgot Password Screen -->
+    <string name="forgot_password_title">Password Dimenticata</string>
+    <string name="forgot_password_recover_header">Recupera la tua password</string>
+    <string name="forgot_password_instructions">Inserisci il tuo indirizzo email e ti invieremo le istruzioni per reimpostare la password.</string>
+    <string name="forgot_password_send_link">Invia Link di Ripristino</string>
+
+    <!-- Components -->
+    <string name="hide_password">Nascondi password</string>
+    <string name="show_password">Mostra password</string>
+
+    <!-- Permissions -->
+    <string name="permission_title">Permessi Necessari</string>
+    <string name="permission_rationale">HeartMusic ha bisogno dei permessi per i Sensori Corporei e il Bluetooth per analizzare le tue emozioni durante l\'ascolto. Per favore, concedi questi permessi per un\'esperienza completa.</string>
+    <string name="permission_settings_rationale">I permessi sono stati negati permanentemente. Per favore, abilitali nelle impostazioni dell\'app per usare le funzionalità di Analisi Emozioni.</string>
+    <string name="permission_grant">Concedi Permessi</string>
+    <string name="permission_settings">Vai alle Impostazioni</string>
+    <string name="permission_denied_toast">Alcune funzionalità saranno limitate senza i permessi.</string>
+
+    <!-- Generic Errors -->
+    <string name="error_network">Errore di rete: %1$s</string>
+    <string name="error_unknown">Si è verificato un errore sconosciuto</string>
+    <string name="error_login_failed">Email o password non validi</string>
+    <string name="error_registration_failed">Errore durante la registrazione: %1$s</string>
+    <string name="error_load_feelings">Impossibile caricare i sentimenti</string>
+    <string name="error_save_feelings">Impossibile salvare i sentimenti</string>
+    <string name="error_load_song">Impossibile caricare il brano</string>
+</resources>

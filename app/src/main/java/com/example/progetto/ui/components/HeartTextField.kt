@@ -14,6 +14,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HeartTextField(
@@ -40,7 +43,7 @@ fun HeartTextField(
                     Icons.Filled.Visibility
                 else Icons.Filled.VisibilityOff
 
-                val description = if (passwordVisible) "Hide password" else "Show password"
+                val description = if (passwordVisible) stringResource(R.string.hide_password) else stringResource(R.string.show_password)
 
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                     Icon(imageVector = image, contentDescription = description)

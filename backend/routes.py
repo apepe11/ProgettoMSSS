@@ -59,8 +59,8 @@ def register_user():
     db.session.add(new_user)
     db.session.commit()
 
-    # Invia la mail di benvenuto
-    send_welcome_email(new_user.email, new_user.username)
+    # No email confirmation needed as per user request
+    # send_welcome_email(new_user.email, new_user.username)
 
     return jsonify({"message": "User created successfully!", "user_id": new_user.user_id}), 201
 

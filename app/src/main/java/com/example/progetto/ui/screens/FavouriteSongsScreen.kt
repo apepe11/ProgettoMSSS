@@ -51,6 +51,11 @@ fun FavouriteSongsScreen(
 // ==========================================
 // 2. THE STATELESS UI (Used by the Preview)
 // ==========================================
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
+// ... (existing code)
+
 @Composable
 fun FavouriteSongsScreenContent(
     topSongs: List<Song>,
@@ -65,7 +70,7 @@ fun FavouriteSongsScreenContent(
             .padding(24.dp)
     ) {
         Text(
-            text = "Favourite Songs",
+            text = stringResource(R.string.favorites_title),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -78,7 +83,7 @@ fun FavouriteSongsScreenContent(
             }
         } else if (topSongs.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = "No favourite songs yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = stringResource(R.string.favorites_empty), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -107,7 +112,7 @@ fun FavouriteSongsScreenContent(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.Favorite,
-                                contentDescription = "Remove from favorites",
+                                contentDescription = stringResource(R.string.favorites_remove_description),
                                 tint = Color.Red,
                                 modifier = Modifier
                                     .size(16.dp)

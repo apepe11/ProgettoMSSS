@@ -23,6 +23,9 @@ import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.PlaylistViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
 @Composable
 fun PlaylistDetailScreen(
     playlistId: String,
@@ -59,10 +62,10 @@ fun PlaylistDetailScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onNavigateBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.playlist_back_description))
             }
             Text(
-                text = "Playlist Details",
+                text = stringResource(R.string.playlist_details_title),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 8.dp)
@@ -73,7 +76,7 @@ fun PlaylistDetailScreen(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { viewModel.onSearchQueryChange(it) },
-            placeholder = { Text("Search for Song or Artist", fontSize = 12.sp) },
+            placeholder = { Text(stringResource(R.string.playlist_search_placeholder), fontSize = 12.sp) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
@@ -123,13 +126,13 @@ fun PlaylistDetailScreen(
                     Spacer(modifier = Modifier.width(20.dp))
                     Column {
                         Text(
-                            text = playlistDetail?.title ?: "Loading...",
+                            text = playlistDetail?.title ?: stringResource(R.string.playlist_loading),
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Emotion: ${playlistDetail?.emotion ?: ""}",
+                            text = stringResource(R.string.playlist_emotion_prefix, playlistDetail?.emotion ?: ""),
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

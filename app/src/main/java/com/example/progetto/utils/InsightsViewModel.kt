@@ -1,15 +1,13 @@
 package com.example.progetto.utils // Change this package name if you put it in a different folder!
 
-import android.util.Log
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
+import com.example.progetto.data.repositories.InsightsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class InsightsViewModel : ViewModel() {
-    private val networkManager = NetworkManager()
+    private val insightsRepository = InsightsRepository()
 
     // Holds the raw data from the server so we don't have to re-download it when toggling
     private var fullInsightsData: InsightsResponse? = null
@@ -22,19 +20,16 @@ class InsightsViewModel : ViewModel() {
     private val _chartData = MutableStateFlow(EmotionStats())
     val chartData: StateFlow<EmotionStats> = _chartData.asStateFlow()
 
-    // 1. Removed the init block.
-
-    // 2. Changed from private to public, and renamed to loadInsights (Standard convention)
     fun loadInsights(currentUserId: String) {
         viewModelScope.launch {
             try {
-                val data = networkManager.getInsights(currentUserId)
-                if (data != null) {
-                    fullInsightsData = data
+                val response = insightsRepository.getInsights(currentUserId)
+                if (response.isSuccessful && response.body() != null) {
+                    fullInsightsData = response.body()
                     // Populate the chart with the "App Detected" data by default
                     updateChartData("App Detected")
                 } else {
-                    Log.e("InsightsViewModel", "Data came back null")
+                    Log.e("InsightsViewModel", "Data came back null or error: ${response.code()}")
                 }
             } catch (e: Exception) {
                 Log.e("InsightsViewModel", "Error fetching data", e)
