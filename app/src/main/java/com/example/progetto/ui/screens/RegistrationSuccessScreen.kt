@@ -43,7 +43,7 @@ fun RegistrationSuccessScreen(
         Spacer(modifier = Modifier.height(48.dp))
 
         Text(
-            text = "We've just sent you an email.\ncheck your inbox...",
+            text = "Registration successful!\nYou can now sign in to your account.",
             fontSize = 20.sp,
             fontWeight = FontWeight.Medium,
             textAlign = TextAlign.Center,

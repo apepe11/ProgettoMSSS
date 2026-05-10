@@ -83,15 +83,10 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (response.isSuccessful && response.body() != null) {
                     val loginResponse = response.body()!!
-                    val finalUser = if (loginResponse.username == null) {
-                        loginResponse.copy(username = username)
-                    } else {
-                        loginResponse
-                    }
-                    currentUser = finalUser
-                    // Salva l'utente permanentemente
-                    userPreferences.saveUser(finalUser.userId, finalUser.username ?: "")
-                    uiState = LoginUiState.Success(finalUser)
+                    // After registration, we DON'T auto-login as per user request to go through sign-in screen
+                    // currentUser = finalUser
+                    // userPreferences.saveUser(finalUser.userId, finalUser.username ?: "")
+                    uiState = LoginUiState.Success(loginResponse)
                 } else {
                     uiState = LoginUiState.Error("Errore durante la registrazione: ${response.message()}")
                 }

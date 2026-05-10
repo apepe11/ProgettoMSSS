@@ -32,7 +32,7 @@ The project follows a modern **Full-Stack** approach, clearly separating respons
 *   **Database**: **PostgreSQL**, a robust relational database for managing users, sessions, and playlists.
 *   **Containerization**: The entire backend is packaged via **Docker** and **Docker Compose**, allowing for quick and identical installation on any machine (Database + Server).
 *   **Security**: Password encryption via `werkzeug.security` and session management.
-*   **Automation**: Automatic email system for registration confirmation.
+*   **Automation**: Setup for background tasks and potential future notifications.
 
 ---
 
