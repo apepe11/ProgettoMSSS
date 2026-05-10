@@ -20,6 +20,8 @@ import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.utils.SensorAvailability
 import kotlinx.coroutines.delay
 
+import androidx.compose.ui.res.stringResource
+
 @Composable
 fun HomeScreen(
     onOpenDrawer: () -> Unit = {}, // You can likely delete this parameter later since the global bar handles the drawer now!
@@ -57,15 +59,15 @@ fun HomeScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             ModeButton(
-                title = "Emotion Analysis",
-                subtitle = "Analyze your feelings with music",
+                title = stringResource(R.string.home_emotion_analysis),
+                subtitle = stringResource(R.string.home_emotion_analysis_subtitle),
                 isEnabled = sensorsAvailable,
                 onClick = onNavigateToEmotionAnalysis
             )
 
             if (!sensorsAvailable) {
                 Text(
-                    text = "Connect EEG and watch to enable Emotion Analysis.",
+                    text = stringResource(R.string.home_sensors_not_available),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 12.sp,
                     modifier = Modifier.semantics { 
@@ -75,8 +77,8 @@ fun HomeScreen(
             }
 
             ModeButton(
-                title = "Listening Mode",
-                subtitle = "Discover your library",
+                title = stringResource(R.string.home_listening_mode),
+                subtitle = stringResource(R.string.home_listening_mode_subtitle),
                 isEnabled = true,
                 onClick = onNavigateToListeningMode
             )
@@ -91,13 +93,14 @@ fun ModeButton(
     isEnabled: Boolean,
     onClick: () -> Unit
 ) {
+    val openModeLabel = stringResource(R.string.home_open_mode_description, title)
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
             .clickable(
                 enabled = isEnabled,
-                onClickLabel = "Open $title mode",
+                onClickLabel = openModeLabel,
                 role = Role.Button
             ) { onClick() }
             .semantics(mergeDescendants = true) {

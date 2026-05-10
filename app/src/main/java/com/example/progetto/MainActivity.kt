@@ -65,6 +65,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+import androidx.compose.ui.res.stringResource
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalDrawerNavigation() {
@@ -111,7 +113,7 @@ fun GlobalDrawerNavigation() {
 
     // Usiamo remember per reagire ai cambiamenti nel ViewModel
     val currentUser = authViewModel.currentUser
-    val username = currentUser?.username ?: "Guest"
+    val username = currentUser?.username ?: stringResource(R.string.nav_guest)
 
     // Sincronizza lo userId nel PlayerViewModel
     LaunchedEffect(currentUser) {
@@ -155,11 +157,11 @@ fun GlobalDrawerNavigation() {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         val allMenuItems = listOf(
-                            Triple("Emotion analysis", Icons.Default.Analytics, "emotion_analysis"),
-                            Triple("Listening Mode", Icons.Default.Headset, "listening_mode"),
-                            Triple("Your feelings", Icons.Default.Favorite, "your_feelings"),
-                            Triple("Insights", Icons.Default.BarChart, "insights"),
-                            Triple("Favourite Songs", Icons.Default.LibraryMusic, "favourite_songs")
+                            Triple(stringResource(R.string.nav_emotion_analysis), Icons.Default.Analytics, "emotion_analysis"),
+                            Triple(stringResource(R.string.nav_listening_mode), Icons.Default.Headset, "listening_mode"),
+                            Triple(stringResource(R.string.nav_your_feelings), Icons.Default.Favorite, "your_feelings"),
+                            Triple(stringResource(R.string.nav_insights), Icons.Default.BarChart, "insights"),
+                            Triple(stringResource(R.string.nav_favourite_songs), Icons.Default.LibraryMusic, "favourite_songs")
                         )
 
                         allMenuItems.forEach { (label, icon, route) ->
@@ -172,7 +174,7 @@ fun GlobalDrawerNavigation() {
                                     ) {
                                         Toast.makeText(
                                             context,
-                                            "Connect EEG and watch to use Emotion Analysis.",
+                                            context.getString(R.string.toast_connect_sensors),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         return@NavigationDrawerItem
@@ -191,7 +193,7 @@ fun GlobalDrawerNavigation() {
 
                         Spacer(modifier = Modifier.weight(1f))
                         NavigationDrawerItem(
-                            label = { Text("Logout", color = Color.Red) },
+                            label = { Text(stringResource(R.string.nav_logout), color = Color.Red) },
                             selected = false,
                             onClick = {
                                 scope.launch {
@@ -223,7 +225,7 @@ fun GlobalDrawerNavigation() {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         ComposeImage(
                                             painter = painterResource(id = R.drawable.logo),
-                                            contentDescription = "Logo",
+                                            contentDescription = stringResource(R.string.nav_logo_description),
                                             modifier = Modifier
                                                 .size(80.dp)
                                                 .clickable {
@@ -234,14 +236,14 @@ fun GlobalDrawerNavigation() {
                                             contentScale = ContentScale.Fit
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("HeartMusic", fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
+                                        Text(stringResource(R.string.app_name), fontSize = 20.sp, color = MaterialTheme.colorScheme.onBackground)
                                     }
                                 },
                                 actions = {
                                     IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                         Icon(
                                             imageVector = Icons.Default.MoreVert,
-                                            contentDescription = "Menu",
+                                            contentDescription = stringResource(R.string.nav_menu_description),
                                             tint = MaterialTheme.colorScheme.onBackground
                                         )
                                     }

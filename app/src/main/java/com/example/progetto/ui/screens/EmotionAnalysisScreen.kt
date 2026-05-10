@@ -30,6 +30,9 @@ import com.example.progetto.utils.SensorCollectionViewModel
 import java.util.UUID
 import java.util.Locale
 
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
 @Composable
 fun EmotionAnalysisScreen(
     onOpenDrawer: () -> Unit = {},
@@ -141,7 +144,7 @@ fun EmotionAnalysisScreen(
                 color = MaterialTheme.colorScheme.errorContainer
             ) {
                 Text(
-                    text = "⚠️ EEG non in streaming o watch non collegata\nL'analisi resta disponibile, ma i dati reali non sono attivi.",
+                    text = stringResource(R.string.emotion_analysis_warning),
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,
@@ -160,7 +163,7 @@ fun EmotionAnalysisScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "THE SONG CURRENTLY IS:",
+                text = stringResource(R.string.emotion_analysis_current_song_header),
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -213,7 +216,7 @@ fun EmotionAnalysisScreen(
                                 )
                         ) {
                             Text(
-                                text = currentSong?.title ?: "Unknown",
+                                text = currentSong?.title ?: stringResource(R.string.emotion_analysis_unknown_song),
                                 color = MaterialTheme.colorScheme.onSecondary,
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold,
@@ -224,7 +227,7 @@ fun EmotionAnalysisScreen(
                                 )
                             )
                             Text(
-                                text = currentSong?.artist ?: "Unknown Artist",
+                                text = currentSong?.artist ?: stringResource(R.string.emotion_analysis_unknown_artist),
                                 color = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.8f),
                                 fontSize = 12.sp,
                                 maxLines = 1,
@@ -238,16 +241,17 @@ fun EmotionAnalysisScreen(
                             onClick = toggleCurrentSong,
                             enabled = currentSong?.url?.isNotEmpty() == true
                         ) {
+                            val isCurrentPlaying = isPlaying && playingSongId == currentSong?.song_id
                             Icon(
-                                imageVector = if (isPlaying && playingSongId == currentSong?.song_id) {
+                                imageVector = if (isCurrentPlaying) {
                                     Icons.Default.Pause
                                 } else {
                                     Icons.Default.PlayArrow
                                 },
-                                contentDescription = if (isPlaying && playingSongId == currentSong?.song_id) {
-                                    "Pause"
+                                contentDescription = if (isCurrentPlaying) {
+                                    stringResource(R.string.player_pause_description)
                                 } else {
-                                    "Play"
+                                    stringResource(R.string.player_play_description)
                                 },
                                 tint = MaterialTheme.colorScheme.onSecondary
                             )
@@ -260,7 +264,7 @@ fun EmotionAnalysisScreen(
 
             if (songFinished) {
                 Text(
-                    text = "THE EMOTION DETECTED IS:",
+                    text = stringResource(R.string.emotion_analysis_detected_header),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -276,7 +280,7 @@ fun EmotionAnalysisScreen(
                 )
 
                 HeartButton(
-                    text = "Review the song",
+                    text = stringResource(R.string.emotion_analysis_review_song),
                     onClick = {
                         onReviewSong()
                     },
@@ -285,7 +289,7 @@ fun EmotionAnalysisScreen(
                 )
             } else {
                 Text(
-                    text = "SIGNALS ARE PERCEIVING:",
+                    text = stringResource(R.string.emotion_analysis_signals_header),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface,
@@ -303,7 +307,7 @@ fun EmotionAnalysisScreen(
         Spacer(modifier = Modifier.weight(1f))
 
         HeartButton(
-            text = "Review another song",
+            text = stringResource(R.string.emotion_analysis_review_another),
             onClick = {
                 sensorViewModel.stopListeningSession()
                 viewModel.loadRandomSong()
@@ -326,32 +330,33 @@ private fun SignalPerceptionPanel(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
+        val waitingText = stringResource(R.string.emotion_analysis_waiting)
         SignalLine(
-            label = "EEG activity",
-            value = snapshot.latestEeg?.let { "${formatSignalValue(it)} uV" } ?: "Waiting",
+            label = stringResource(R.string.emotion_analysis_eeg_label),
+            value = snapshot.latestEeg?.let { "${formatSignalValue(it)} uV" } ?: waitingText,
             samples = snapshot.eegSamples,
             active = snapshot.eegSamples > 0
         )
         SignalLine(
-            label = "Heart rate",
-            value = snapshot.latestHeartRate?.let { "${it.toInt()} bpm" } ?: "Waiting",
+            label = stringResource(R.string.emotion_analysis_hr_label),
+            value = snapshot.latestHeartRate?.let { "${it.toInt()} bpm" } ?: waitingText,
             samples = snapshot.heartRateSamples,
             active = snapshot.heartRateSamples > 0
         )
         SignalLine(
-            label = "Skin conductance",
-            value = snapshot.latestEda?.let { formatSignalValue(it) } ?: "Waiting",
+            label = stringResource(R.string.emotion_analysis_eda_label),
+            value = snapshot.latestEda?.let { formatSignalValue(it) } ?: waitingText,
             samples = snapshot.edaSamples,
             active = snapshot.edaSamples > 0
         )
 
         Text(
             text = if (snapshot.isCollecting) {
-                "Listening to live physiological signals..."
+                stringResource(R.string.emotion_analysis_listening_live)
             } else if (sensorsAvailable) {
-                "Preparing signal collection..."
+                stringResource(R.string.emotion_analysis_preparing)
             } else {
-                "No live wearable signal detected yet."
+                stringResource(R.string.emotion_analysis_no_signal)
             },
             fontSize = 12.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -382,7 +387,7 @@ private fun SignalLine(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                Text(text = "$samples samples", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = stringResource(R.string.emotion_analysis_samples_count, samples), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
                 text = value,

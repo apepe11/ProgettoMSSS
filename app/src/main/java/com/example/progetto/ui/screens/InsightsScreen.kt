@@ -27,6 +27,9 @@ import com.example.progetto.utils.InsightsViewModel
 import kotlin.math.cos
 import kotlin.math.sin
 
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
 @Composable
 fun InsightsScreen(
     currentUserId: String, // <-- Added the user ID parameter
@@ -48,7 +51,7 @@ fun InsightsScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Your Insights",
+            text = stringResource(R.string.insights_title),
             fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary,
@@ -71,7 +74,10 @@ fun StatisticalAnalysisContent(
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
 
-    val filterOptions = listOf("App Detected", "User Experienced")
+    val filterOptions = listOf(
+        stringResource(R.string.insights_app_detected),
+        stringResource(R.string.insights_user_experienced)
+    )
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -87,11 +93,11 @@ fun StatisticalAnalysisContent(
                 horizontalAlignment = Alignment.Start
             ) {
                 val legendItems = listOf(
-                    Pair(Color(0xFFFFD700), "Happy"),
-                    Pair(Color(0xFF2196F3), "Sad"),
-                    Pair(Color(0xFF4CAF50), "Calm"),
-                    Pair(Color(0xFF9C27B0), "Anxious"),
-                    Pair(Color(0xFFFF5722), "Energetic")
+                    Pair(Color(0xFFFFD700), stringResource(R.string.emotion_happy)),
+                    Pair(Color(0xFF2196F3), stringResource(R.string.emotion_sad)),
+                    Pair(Color(0xFF4CAF50), stringResource(R.string.emotion_calm)),
+                    Pair(Color(0xFF9C27B0), stringResource(R.string.emotion_anxious)),
+                    Pair(Color(0xFFFF5722), stringResource(R.string.emotion_energetic))
                 )
 
                 legendItems.forEach { (color, label) ->
@@ -181,7 +187,7 @@ fun StatisticalAnalysisContent(
 
             // Draw the empty state text if there is no data
             if (totalData == 0f) {
-                Text("No Data", color = onSurfaceVariantColor, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.insights_no_data), color = onSurfaceVariantColor, fontWeight = FontWeight.Medium)
             }
         }
 

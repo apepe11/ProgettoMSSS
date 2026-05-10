@@ -13,6 +13,9 @@ import androidx.compose.ui.unit.sp
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.components.HeartTextField
 
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(
@@ -23,12 +26,12 @@ fun ForgotPasswordScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Forgot Password") },
+                title = { Text(stringResource(R.string.forgot_password_title)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.playlist_back_description)
                         )
                     }
                 }
@@ -44,7 +47,7 @@ fun ForgotPasswordScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "Recover your password",
+                text = stringResource(R.string.forgot_password_recover_header),
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
@@ -53,7 +56,7 @@ fun ForgotPasswordScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Enter your email address and we will send you instructions to reset your password.",
+                text = stringResource(R.string.forgot_password_instructions),
                 fontSize = 16.sp,
                 modifier = Modifier.padding(bottom = 32.dp)
             )
@@ -61,13 +64,13 @@ fun ForgotPasswordScreen(
             HeartTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = "Email"
+                label = stringResource(R.string.register_email_label)
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
             HeartButton(
-                text = "Send Reset Link",
+                text = stringResource(R.string.forgot_password_send_link),
                 onClick = { /* Implement reset logic */ }
             )
         }

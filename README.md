@@ -34,6 +34,12 @@ The project follows a modern **Full-Stack** approach, clearly separating respons
 *   **Security**: Password encryption via `werkzeug.security` and session management.
 *   **Automation**: Setup for background tasks and potential future notifications.
 
+### ♿ Accessibility & Best Practices
+The application is designed to be inclusive and maintainable, following official Android guidelines:
+*   **Internationalization (i18n)**: Zero hardcoded strings. All user-facing text is managed via `strings.xml` to support localization and screen readers.
+*   **Adaptive Layouts**: Use of **Density-independent pixels (dp)** and **ConstraintLayout** to ensure a consistent experience across different screen sizes and densities.
+*   **Semantic Navigation**: Clear back-stack management and semantic properties (`contentDescription`, `onClickLabel`) to improve the experience for users with assistive technologies like TalkBack.
+
 ---
 
 ## 🛠️ How to Start the Project

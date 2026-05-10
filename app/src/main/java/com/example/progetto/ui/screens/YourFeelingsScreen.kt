@@ -22,6 +22,9 @@ import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.FeelingUiState
 import com.example.progetto.ui.viewmodels.FeelingViewModel
 
+import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
+
 @Composable
 fun YourFeelingsScreen(
     onOpenDrawer: () -> Unit = {},
@@ -49,7 +52,7 @@ fun YourFeelingsScreen(
             contentAlignment = Alignment.CenterStart
         ) {
             Text(
-                text = "Your Feelings",
+                text = stringResource(R.string.feelings_title),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.ExtraBold,
                 color = HeartPurple
@@ -70,7 +73,7 @@ fun YourFeelingsScreen(
             is FeelingUiState.Success -> {
                 if (uiState.reviews.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = "No feelings recorded yet.", color = Color.Gray)
+                        Text(text = stringResource(R.string.feelings_empty), color = Color.Gray)
                     }
                 } else {
                     LazyColumn(
@@ -114,7 +117,7 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = "Vibe", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = stringResource(R.string.feelings_vibe), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "${review.valence}°",
                         fontSize = 22.sp,
@@ -135,7 +138,7 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(text = "Energy", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(text = stringResource(R.string.feelings_energy), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         text = "${review.arousal}°",
                         fontSize = 22.sp,
@@ -155,7 +158,7 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                     verticalArrangement = Arrangement.Top
                 ) {
                     Text(
-                        text = "DESCRIPTION",
+                        text = stringResource(R.string.feelings_description_header),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
@@ -183,7 +186,7 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Detected Emotion:",
+                            text = stringResource(R.string.feelings_detected_prefix),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
