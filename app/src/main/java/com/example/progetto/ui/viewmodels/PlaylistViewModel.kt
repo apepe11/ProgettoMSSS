@@ -3,12 +3,12 @@ package com.example.progetto.ui.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.progetto.data.PlaylistDetailResponse
-import com.example.progetto.data.RetrofitClient
-import com.example.progetto.data.SongResponse
+import com.example.progetto.data.repositories.PlaylistRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class PlaylistViewModel : ViewModel() {
+    private val playlistRepository = PlaylistRepository()
 
     private val _playlistDetail = MutableStateFlow<PlaylistDetailResponse?>(null)
     val playlistDetail: StateFlow<PlaylistDetailResponse?> = _playlistDetail
@@ -26,7 +26,7 @@ class PlaylistViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = RetrofitClient.playlistApiService.getPlaylistDetails(playlistId)
+                val response = playlistRepository.getPlaylistDetails(playlistId)
                 if (response.isSuccessful) {
                     _playlistDetail.value = response.body()
                     _filteredSongs.value = response.body()?.songs ?: emptyList()

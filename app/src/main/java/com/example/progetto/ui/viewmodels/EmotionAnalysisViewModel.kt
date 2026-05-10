@@ -4,7 +4,7 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.progetto.data.RetrofitClient
+import com.example.progetto.data.repositories.PlaylistRepository
 import com.example.progetto.utils.SensorAvailability
 import com.example.progetto.utils.SongData
 import com.example.progetto.utils.UiText
@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class EmotionAnalysisViewModel(application: Application) : AndroidViewModel(application) {
+    private val playlistRepository = PlaylistRepository()
     private val _sensorsAvailable = MutableStateFlow(false)
     val sensorsAvailable: StateFlow<Boolean> = _sensorsAvailable.asStateFlow()
     private val fallbackSong = SongData(
@@ -67,41 +68,29 @@ class EmotionAnalysisViewModel(application: Application) : AndroidViewModel(appl
         viewModelScope.launch {
             _isLoading.value = true
             _error.value = null
-            if (!_sensorsAvailable.value) {
-                Log.w("EmotionAnalysisVM", "Emotion sensors not available, continuing with fallback analysis")
-            }
             
             try {
-                val songsResponse = RetrofitClient.playlistApiService.getSongs()
+                val songsResponse = playlistRepository.getSongs()
                 val songs = songsResponse.body()?.songs.orEmpty()
                 if (songs.isNotEmpty()) {
                     val randomSong = songs.random()
                     _currentSong.value = SongData(
-                        song_id = randomSong.songId,
-                        title = randomSong.title,
-                        artist = randomSong.artist,
-                        album = "",
-                        url = randomSong.url
+                        randomSong.songId,
+                        randomSong.title,
+                        randomSong.artist,
+                        "",
+                        randomSong.url
                     )
                     _currentEmotion.value = emotionsList.random()
                 } else {
-                    Log.w("EmotionAnalysisVM", "Songs endpoint empty, trying top songs")
-                    val topSongs = RetrofitClient.playlistApiService.getTopSongs().body()?.songs.orEmpty()
+                    val topSongs = playlistRepository.getTopSongs().body()?.songs.orEmpty()
                     val selectedSong = topSongs.randomOrNull()?.let {
-                        SongData(
-                            song_id = it.songId,
-                            title = it.title,
-                            artist = it.artist,
-                            album = "",
-                            url = it.url
-                        )
+                        SongData(it.songId, it.title, it.artist, "", it.url)
                     } ?: fallbackSong
                     _currentSong.value = selectedSong
-                    _error.value = null
                     _currentEmotion.value = emotionsList.random()
                 }
             } catch (e: Exception) {
-                Log.e("EmotionAnalysisVM", "Error loading song: ${e.message}")
                 _error.value = UiText.StringResource(R.string.error_load_song)
                 _currentSong.value = fallbackSong
                 _currentEmotion.value = emotionsList.random()

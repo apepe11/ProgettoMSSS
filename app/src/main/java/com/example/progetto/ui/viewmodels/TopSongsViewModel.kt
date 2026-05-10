@@ -2,7 +2,7 @@ package com.example.progetto.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.progetto.utils.NetworkManager
+import com.example.progetto.data.repositories.PlaylistRepository
 import com.example.progetto.utils.Song
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,8 +10,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class TopSongsViewModel : ViewModel() {
-    // Initialize our network manager
-    private val networkManager = NetworkManager()
+    private val playlistRepository = PlaylistRepository()
 
     // Holds the currently displayed songs (changes when user types in search bar)
     private val _topSongs = MutableStateFlow<List<Song>>(emptyList())
@@ -33,15 +32,20 @@ class TopSongsViewModel : ViewModel() {
         viewModelScope.launch {
             _isLoading.value = true
 
-            // Fetch from backend (already sorted newest-to-oldest by our SQL query!)
-            val songs = networkManager.getFavoriteSongs(userId)
-
-            if (songs != null) {
-                allFavoriteSongs = songs
-                _topSongs.value = allFavoriteSongs
+            try {
+                val response = playlistRepository.getFavoriteSongs(userId)
+                if (response.isSuccessful && response.body() != null) {
+                    val songs = response.body()!!.map { 
+                        Song(it.songId, it.title, it.artist, it.url, 1) 
+                    }
+                    allFavoriteSongs = songs
+                    _topSongs.value = allFavoriteSongs
+                }
+            } catch (e: Exception) {
+                // Error handling
+            } finally {
+                _isLoading.value = false
             }
-
-            _isLoading.value = false
         }
     }
 
@@ -65,13 +69,14 @@ class TopSongsViewModel : ViewModel() {
      */
     fun toggleFavoriteOff(userId: String, songId: String) {
         viewModelScope.launch {
-            // Send the unlike request to the database
-            val result = networkManager.toggleFavorite(userId, songId)
-
-            // If successful, remove it from the UI instantly
-            if (result.isSuccess) {
-                allFavoriteSongs = allFavoriteSongs.filter { it.songId != songId }
-                onSearchQueryChange(_searchQuery.value) // Re-apply search filter
+            try {
+                val response = playlistRepository.toggleFavorite(songId, mapOf("user_id" to userId))
+                if (response.isSuccessful) {
+                    allFavoriteSongs = allFavoriteSongs.filter { it.songId != songId }
+                    onSearchQueryChange(_searchQuery.value) // Re-apply search filter
+                }
+            } catch (e: Exception) {
+                // Error handling
             }
         }
     }

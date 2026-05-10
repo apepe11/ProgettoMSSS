@@ -6,9 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.progetto.data.RetrofitClient
-import com.example.progetto.data.SongReviewRequest
-import com.example.progetto.data.SongReviewResponse
+import com.example.progetto.data.repositories.AuthRepository
 import com.example.progetto.utils.UiText
 import com.example.progetto.R
 import kotlinx.coroutines.launch
@@ -20,6 +18,8 @@ sealed class FeelingUiState {
 }
 
 class FeelingViewModel : ViewModel() {
+    private val authRepository = AuthRepository()
+    
     var uiState by mutableStateOf<FeelingUiState>(FeelingUiState.Loading)
         private set
 
@@ -31,7 +31,7 @@ class FeelingViewModel : ViewModel() {
         viewModelScope.launch {
             uiState = FeelingUiState.Loading
             try {
-                val response = RetrofitClient.authApiService.getReviews(userId)
+                val response = authRepository.getReviews(userId)
                 if (response.isSuccessful && response.body() != null) {
                     uiState = FeelingUiState.Success(response.body()!!.reviews)
                 } else {
@@ -55,7 +55,7 @@ class FeelingViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val request = SongReviewRequest(userId, sessionId, valence, arousal, description, detectedEmotion)
-                val response = RetrofitClient.authApiService.saveReview(request)
+                val response = authRepository.saveReview(request)
                 if (response.isSuccessful) {
                     Log.d(TAG, "Review saved successfully")
                     loadReviews(userId)

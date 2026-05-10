@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import com.example.progetto.data.repositories.SensorRepository
 import mylibrary.mindrove.SensorData
 import mylibrary.mindrove.ServerManager
 
@@ -34,7 +35,7 @@ data class LiveSignalSnapshot(
 class SensorCollectionViewModel(private val context: Context) : ViewModel() {
     
     private val sensorManager = SensorManager(context)
-    private val networkManager = NetworkManager()
+    private val sensorRepository = SensorRepository()
     private val userPreferences = UserPreferences(context)
     
     private var currentSessionId: UUID? = null
@@ -152,13 +153,13 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
                 
                 // Send data to backend...
                 if (hrData.isNotEmpty()) {
-                    networkManager.sendWearableData(currentSessionId!!, "hr", "user", userRating, hrData)
+                    sensorRepository.sendWearableData(currentSessionId!!, "hr", "user", userRating, hrData)
                 }
                 if (edaData.isNotEmpty()) {
-                    networkManager.sendWearableData(currentSessionId!!, "eda", "user", userRating, edaData)
+                    sensorRepository.sendWearableData(currentSessionId!!, "eda", "user", userRating, edaData)
                 }
                 if (eegData.isNotEmpty()) {
-                    networkManager.sendEegData(currentSessionId!!, "user", userRating, eegData)
+                    sensorRepository.sendEegData(currentSessionId!!, "user", userRating, eegData)
                 }
                 
                 sensorManager.clearBuffers()
