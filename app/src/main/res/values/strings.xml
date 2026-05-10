@@ -155,7 +155,9 @@
     <!-- Permissions -->
     <string name="permission_title">Permissions Required</string>
     <string name="permission_rationale">HeartMusic needs access to your Body Sensors and Bluetooth to analyze your emotions while listening to music. Please grant these permissions to enjoy the full experience.</string>
+    <string name="permission_settings_rationale">Permissions have been permanently denied. Please enable them in the app settings to use Emotion Analysis features.</string>
     <string name="permission_grant">Grant Permissions</string>
+    <string name="permission_settings">Go to Settings</string>
     <string name="permission_denied_toast">Some features will be limited without permissions.</string>
 
     <!-- Generic Errors -->

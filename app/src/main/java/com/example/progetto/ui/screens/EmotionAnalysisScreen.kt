@@ -33,6 +33,10 @@ import java.util.Locale
 import androidx.compose.ui.res.stringResource
 import com.example.progetto.R
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.content.ContextCompat
+
 @Composable
 fun EmotionAnalysisScreen(
     onOpenDrawer: () -> Unit = {},
@@ -44,6 +48,10 @@ fun EmotionAnalysisScreen(
     playerViewModel: PlayerViewModel = viewModel()
 ) {
     val context = LocalContext.current
+    
+    // Permission check for point 4 (explicitly check before using feature)
+    val hasBodySensors = ContextCompat.checkSelfPermission(context, Manifest.permission.BODY_SENSORS) == PackageManager.PERMISSION_GRANTED
+    
     val sensorViewModel = remember { SensorCollectionViewModel.get(context) }
     val userId = authViewModel.currentUser?.userId
     val currentSong by viewModel.currentSong.collectAsState()
@@ -134,8 +142,8 @@ fun EmotionAnalysisScreen(
     ) {
         Spacer(modifier = Modifier.height(20.dp))
 
-        // Warning banner if no sensors
-        if (!sensorsAvailable) {
+        // Warning banner if no sensors OR no permissions
+        if (!sensorsAvailable || !hasBodySensors) {
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -143,13 +151,18 @@ fun EmotionAnalysisScreen(
                     .padding(12.dp),
                 color = MaterialTheme.colorScheme.errorContainer
             ) {
-                Text(
-                    text = stringResource(R.string.emotion_analysis_warning),
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.error,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(16.dp)
-                )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = if (!hasBodySensors) 
+                            stringResource(R.string.permission_rationale)
+                        else 
+                            stringResource(R.string.emotion_analysis_warning),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(16.dp))
         }

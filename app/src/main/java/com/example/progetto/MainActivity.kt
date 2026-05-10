@@ -241,10 +241,14 @@ fun GlobalDrawerNavigation() {
     }
 }
 
+import android.content.Intent
+import android.provider.Settings
+
 @Composable
 private fun EnsureRuntimePermissions() {
     val context = LocalContext.current
     var showRationale by remember { mutableStateOf(false) }
+    var showSettingsRationale by remember { mutableStateOf(false) }
 
     val requiredPermissions = remember {
         buildList {
@@ -260,18 +264,26 @@ private fun EnsureRuntimePermissions() {
         onResult = { result ->
             val allGranted = result.values.all { it }
             if (!allGranted) {
-                Toast.makeText(context, context.getString(R.string.permission_denied_toast), Toast.LENGTH_LONG).show()
+                // If not all granted, check if any was permanently denied
+                val permanentlyDenied = requiredPermissions.any { permission ->
+                    ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED &&
+                    (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(permission) == false
+                }
+                if (permanentlyDenied) {
+                    showSettingsRationale = true
+                } else {
+                    Toast.makeText(context, context.getString(R.string.permission_denied_toast), Toast.LENGTH_LONG).show()
+                }
             }
         }
     )
 
-    LaunchedEffect(Unit) {
+    fun checkAndRequestPermissions() {
         val missingPermissions = requiredPermissions.filter { permission ->
             ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED
         }
 
         if (missingPermissions.isNotEmpty()) {
-            // Check if we should show a rationale
             val shouldShowRationale = missingPermissions.any { 
                 (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(it) == true 
             }
@@ -279,9 +291,21 @@ private fun EnsureRuntimePermissions() {
             if (shouldShowRationale) {
                 showRationale = true
             } else {
+                // Check if they are permanently denied before asking
+                val isPermanentlyDenied = missingPermissions.any { 
+                    (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(it) == false 
+                }
+                
+                // On some Android versions, if we never asked, shouldShowRequestPermissionRationale is false.
+                // So we only show settings if we are sure it's a denial.
+                // A better way is to just launch the request, and handle the result.
                 launcher.launch(missingPermissions.toTypedArray())
             }
         }
+    }
+
+    LaunchedEffect(Unit) {
+        checkAndRequestPermissions()
     }
 
     if (showRationale) {
@@ -299,6 +323,30 @@ private fun EnsureRuntimePermissions() {
             },
             dismissButton = {
                 TextButton(onClick = { showRationale = false }) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+        )
+    }
+
+    if (showSettingsRationale) {
+        AlertDialog(
+            onDismissRequest = { showSettingsRationale = false },
+            title = { Text(stringResource(R.string.permission_title)) },
+            text = { Text(stringResource(R.string.permission_settings_rationale)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showSettingsRationale = false
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                    }
+                    context.startActivity(intent)
+                }) {
+                    Text(stringResource(R.string.permission_settings))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSettingsRationale = false }) {
                     Text(stringResource(android.R.string.cancel))
                 }
             }
