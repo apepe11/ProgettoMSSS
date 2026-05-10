@@ -100,7 +100,7 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message else null
+        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message.asString() else null
         
         if (displayError != null) {
             Text(

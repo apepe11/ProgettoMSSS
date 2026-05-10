@@ -76,7 +76,7 @@ fun RegisterScreen(
         HeartTextField(value = password, onValueChange = { password = it }, label = stringResource(R.string.register_password_label), isPassword = true)
         HeartTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = stringResource(R.string.register_confirm_password_label), isPassword = true)
 
-        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message else null
+        val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message.asString() else null
 
         if (displayError != null) {
             Text(

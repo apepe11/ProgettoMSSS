@@ -151,4 +151,19 @@
     <!-- Components -->
     <string name="hide_password">Hide password</string>
     <string name="show_password">Show password</string>
+
+    <!-- Permissions -->
+    <string name="permission_title">Permissions Required</string>
+    <string name="permission_rationale">HeartMusic needs access to your Body Sensors and Bluetooth to analyze your emotions while listening to music. Please grant these permissions to enjoy the full experience.</string>
+    <string name="permission_grant">Grant Permissions</string>
+    <string name="permission_denied_toast">Some features will be limited without permissions.</string>
+
+    <!-- Generic Errors -->
+    <string name="error_network">Network error: %1$s</string>
+    <string name="error_unknown">An unknown error occurred</string>
+    <string name="error_login_failed">Invalid email or password</string>
+    <string name="error_registration_failed">Error during registration: %1$s</string>
+    <string name="error_load_feelings">Failed to load feelings</string>
+    <string name="error_save_feelings">Failed to save feelings</string>
+    <string name="error_load_song">Failed to load song</string>
 </resources>

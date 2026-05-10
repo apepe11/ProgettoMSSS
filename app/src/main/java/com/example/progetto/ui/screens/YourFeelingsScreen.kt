@@ -67,7 +67,7 @@ fun YourFeelingsScreen(
             }
             is FeelingUiState.Error -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(text = uiState.message, color = Color.Red)
+                    Text(text = uiState.message.asString(), color = Color.Red)
                 }
             }
             is FeelingUiState.Success -> {

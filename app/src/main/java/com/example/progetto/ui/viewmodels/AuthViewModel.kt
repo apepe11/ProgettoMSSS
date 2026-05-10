@@ -8,6 +8,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.progetto.data.*
+import com.example.progetto.utils.UiText
+import com.example.progetto.R
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -16,7 +18,7 @@ sealed class LoginUiState {
     object Idle : LoginUiState()
     object Loading : LoginUiState()
     data class Success(val response: LoginResponse) : LoginUiState()
-    data class Error(val message: String) : LoginUiState()
+    data class Error(val message: UiText) : LoginUiState()
 }
 
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
@@ -64,11 +66,11 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 } else {
                     val errorBody = response.errorBody()?.string() ?: "Unknown error"
                     Log.w(TAG, "Login failed: ${response.code()} - $errorBody")
-                    uiState = LoginUiState.Error("Email o password errati")
+                    uiState = LoginUiState.Error(UiText.StringResource(R.string.error_login_failed))
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Login exception: ${e.message}", e)
-                uiState = LoginUiState.Error("Errore di connessione: ${e.localizedMessage}")
+                uiState = LoginUiState.Error(UiText.StringResource(R.string.error_network, e.localizedMessage ?: ""))
             }
         }
     }
@@ -83,15 +85,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
                 if (response.isSuccessful && response.body() != null) {
                     val loginResponse = response.body()!!
-                    // After registration, we DON'T auto-login as per user request to go through sign-in screen
-                    // currentUser = finalUser
-                    // userPreferences.saveUser(finalUser.userId, finalUser.username ?: "")
                     uiState = LoginUiState.Success(loginResponse)
                 } else {
-                    uiState = LoginUiState.Error("Errore durante la registrazione: ${response.message()}")
+                    uiState = LoginUiState.Error(UiText.StringResource(R.string.error_registration_failed, response.message()))
                 }
             } catch (e: Exception) {
-                uiState = LoginUiState.Error("Errore di connessione: ${e.localizedMessage}")
+                uiState = LoginUiState.Error(UiText.StringResource(R.string.error_network, e.localizedMessage ?: ""))
             }
         }
     }

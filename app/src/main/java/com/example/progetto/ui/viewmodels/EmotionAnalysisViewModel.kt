@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.progetto.data.RetrofitClient
 import com.example.progetto.utils.SensorAvailability
 import com.example.progetto.utils.SongData
+import com.example.progetto.utils.UiText
+import com.example.progetto.R
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,8 +35,8 @@ class EmotionAnalysisViewModel(application: Application) : AndroidViewModel(appl
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error.asStateFlow()
+    private val _error = MutableStateFlow<UiText?>(null)
+    val error: StateFlow<UiText?> = _error.asStateFlow()
 
     private val emotionsList = listOf("Happy", "Sad", "Energetic", "Calm", "Anxious", "Peaceful", "Motivated", "Melancholic")
 
@@ -100,7 +102,7 @@ class EmotionAnalysisViewModel(application: Application) : AndroidViewModel(appl
                 }
             } catch (e: Exception) {
                 Log.e("EmotionAnalysisVM", "Error loading song: ${e.message}")
-                _error.value = "Failed to load song"
+                _error.value = UiText.StringResource(R.string.error_load_song)
                 _currentSong.value = fallbackSong
                 _currentEmotion.value = emotionsList.random()
             } finally {

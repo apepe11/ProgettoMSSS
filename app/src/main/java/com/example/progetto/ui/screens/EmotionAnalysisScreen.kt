@@ -175,7 +175,7 @@ fun EmotionAnalysisScreen(
                 CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
             } else if (error != null) {
                 Text(
-                    text = "Error: $error",
+                    text = error!!.asString(),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(16.dp),
