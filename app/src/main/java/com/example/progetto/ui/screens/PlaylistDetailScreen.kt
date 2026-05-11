@@ -14,23 +14,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.progetto.ui.theme.HeartMusicTheme
+import com.example.progetto.R
+import com.example.progetto.data.SongResponse // ✅ MUST HAVE THIS
 import com.example.progetto.ui.viewmodels.PlaylistViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
-
-import androidx.compose.ui.res.stringResource
-import com.example.progetto.R
 
 @Composable
 fun PlaylistDetailScreen(
     playlistId: String,
-    onNavigateToPlayer: (String, String, String, String) -> Unit = { _, _, _, _ -> },
-    onNavigateBack: () -> Unit = {},
+    onNavigateToPlayer: (String, String, String, String) -> Unit,
+    onNavigateBack: () -> Unit,
     viewModel: PlaylistViewModel = viewModel(),
     playerViewModel: PlayerViewModel = viewModel()
 ) {
@@ -39,172 +37,53 @@ fun PlaylistDetailScreen(
     val filteredSongs by viewModel.filteredSongs.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
-    val currentSongId by playerViewModel.currentSongId.collectAsState()
-    val currentSongTitle by playerViewModel.currentSongTitle.collectAsState()
-    val isPlaying by playerViewModel.isPlaying.collectAsState()
-    val currentArtistName by playerViewModel.currentArtistName.collectAsState()
-    val currentSongUrl by playerViewModel.currentSongUrl.collectAsState()
-
     LaunchedEffect(playlistId) {
         viewModel.loadPlaylistDetails(playlistId)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        // Top Bar with Back Button
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.playlist_back_description))
-            }
-            Text(
-                text = stringResource(R.string.playlist_details_title),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 8.dp)
-            )
+    Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+        // Top Bar
+        Row(modifier = Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onNavigateBack) { Icon(Icons.Default.ArrowBack, contentDescription = null) }
+            Text(text = "Playlist Details", fontSize = 20.sp, fontWeight = FontWeight.Bold)
         }
 
-        // 1. Search Bar
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { viewModel.onSearchQueryChange(it) },
-            placeholder = { Text(stringResource(R.string.playlist_search_placeholder), fontSize = 12.sp) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp)
-                .height(50.dp),
-            shape = RoundedCornerShape(25.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-                focusedContainerColor = MaterialTheme.colorScheme.surface,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surface
-            ),
-            singleLine = true
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
         if (isLoading) {
-            Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator()
             }
         } else {
-            // 2. Playlist Header & Songs
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Header Playlist
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(bottom = 24.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(100.dp)
-                            .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(20.dp))
-                    Column {
-                        Text(
-                            text = playlistDetail?.title ?: stringResource(R.string.playlist_loading),
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Text(
-                            text = stringResource(R.string.playlist_emotion_prefix, playlistDetail?.emotion ?: ""),
-                            fontSize = 14.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                item {
+                    Text(text = playlistDetail?.title ?: "", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                    Text(text = playlistDetail?.emotion ?: "", color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // Lista Canzoni
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    itemsIndexed(filteredSongs) { index, song ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { 
-                                    // Aggiorniamo la playlist nel PlayerViewModel prima di navigare
-                                    playerViewModel.updatePlaylist(filteredSongs, index)
-                                    playerViewModel.playSong(song.title, song.artist, song.url, song.songId)
-                                    onNavigateToPlayer(song.title, song.artist, song.url, song.songId) 
-                                },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(4.dp)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = song.title.take(1).uppercase(),
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column {
-                                Text(
-                                    text = song.title,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = song.artist,
-                                    fontSize = 12.sp,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
+                // ✅ Explicitly defining the type (song: SongResponse) fixes the "Cannot infer type" error
+                itemsIndexed(filteredSongs) { index, song: SongResponse ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                playerViewModel.updatePlaylist(filteredSongs, index)
+                                playerViewModel.playSong(song.title, song.artist, song.url, song.songId)
+                                onNavigateToPlayer(song.title, song.artist, song.url, song.songId)
+                            },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.MusicNote, contentDescription = null, modifier = Modifier.size(40.dp))
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column {
+                            Text(text = song.title, fontWeight = FontWeight.Bold)
+                            Text(text = song.artist, style = MaterialTheme.typography.bodySmall)
                         }
                     }
                 }
             }
         }
-
-        // 3. MiniPlayer
-        if (currentSongUrl.isNotEmpty()) {
-            MiniPlayer(
-                songTitle = currentSongTitle,
-                artistName = currentArtistName,
-                isPlaying = isPlaying,
-                onTogglePlay = { playerViewModel.togglePlayPause() },
-                onClick = { onNavigateToPlayer(currentSongTitle, currentArtistName, currentSongUrl, currentSongId ?: "") }
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PlaylistDetailScreenPreview() {
-    HeartMusicTheme {
-        PlaylistDetailScreen(playlistId = "dummy-id")
     }
 }

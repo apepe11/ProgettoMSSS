@@ -11,19 +11,18 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.progetto.R
 import com.example.progetto.data.SongReviewResponse
 import com.example.progetto.ui.theme.HeartPurple
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.FeelingUiState
 import com.example.progetto.ui.viewmodels.FeelingViewModel
-
-import androidx.compose.ui.res.stringResource
-import com.example.progetto.R
 
 @Composable
 fun YourFeelingsScreen(
@@ -34,7 +33,6 @@ fun YourFeelingsScreen(
     val userId = authViewModel.currentUser?.userId
     val uiState = feelingViewModel.uiState
 
-    // Carica le review all'avvio
     LaunchedEffect(userId) {
         userId?.let { feelingViewModel.loadReviews(it) }
     }
@@ -44,7 +42,7 @@ fun YourFeelingsScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // Header con solo il Titolo
+        // Title Header
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -71,7 +69,10 @@ fun YourFeelingsScreen(
                 }
             }
             is FeelingUiState.Success -> {
-                if (uiState.reviews.isEmpty()) {
+                // ✅ Explicitly defining the list type helps the compiler avoid the 'int' mismatch
+                val currentReviews: List<SongReviewResponse> = uiState.reviews
+
+                if (currentReviews.isEmpty()) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text(text = stringResource(R.string.feelings_empty), color = Color.Gray)
                     }
@@ -83,8 +84,9 @@ fun YourFeelingsScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         contentPadding = PaddingValues(bottom = 24.dp)
                     ) {
-                        items(uiState.reviews) { review ->
-                            FeelingEntryItem(review)
+                        // ✅ Use the explicit items function for lists
+                        items(items = currentReviews) { review ->
+                            FeelingEntryItem(review = review)
                         }
                     }
                 }
@@ -104,10 +106,8 @@ fun FeelingEntryItem(review: SongReviewResponse) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            Row(
-                modifier = Modifier.height(110.dp)
-            ) {
-                // Parametro 1 (Valence)
+            Row(modifier = Modifier.height(110.dp)) {
+                // Valence / Vibe
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
@@ -126,10 +126,9 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                     )
                 }
 
-                // Separatore verticale
                 Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 
-                // Parametro 2 (Arousal)
+                // Arousal / Energy
                 Column(
                     modifier = Modifier
                         .fillMaxHeight()
@@ -147,10 +146,9 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                     )
                 }
 
-                // Separatore verticale
                 Box(modifier = Modifier.fillMaxHeight().width(1.dp).background(MaterialTheme.colorScheme.outlineVariant))
 
-                // Colonna Description
+                // Description
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -175,8 +173,8 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                     )
                 }
             }
-            
-            // Badge Emozione Rilevata
+
+            // Detected Emotion Badge
             review.detectedEmotion?.let { emotion ->
                 Box(
                     modifier = Modifier

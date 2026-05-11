@@ -18,10 +18,11 @@ interface AuthApi {
         @Body request: RegisterRequest
     ): Response<LoginResponse>
 
+    // ✅ FIXED: Changed Response<Unit> to Response<SongReviewResponse>
     @POST("/api/reviews")
     suspend fun saveReview(
         @Body request: SongReviewRequest
-    ): Response<Unit>
+    ): Response<SongReviewResponse>
 
     @GET("/api/users/{user_id}/reviews")
     suspend fun getReviews(

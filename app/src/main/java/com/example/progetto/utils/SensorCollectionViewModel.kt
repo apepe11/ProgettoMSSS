@@ -6,13 +6,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.wearable.Wearable
 import com.example.progetto.data.UserPreferences
+import com.example.progetto.data.repositories.SensorRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.example.progetto.data.repositories.SensorRepository
+import java.util.UUID // ✅ Fixed: Import added
 import mylibrary.mindrove.SensorData
 import mylibrary.mindrove.ServerManager
 
@@ -27,17 +28,12 @@ data class LiveSignalSnapshot(
     val isEegConnected: Boolean = false
 )
 
-/**
- * ViewModel managing sensor data collection from both Wear OS and EEG (MindRove).
- * Following MVVM, this class encapsulates the logic for data gathering, 
- * keeping it out of the Activity/UI layer.
- */
 class SensorCollectionViewModel(private val context: Context) : ViewModel() {
-    
+
     private val sensorManager = SensorManager(context)
     private val sensorRepository = SensorRepository()
     private val userPreferences = UserPreferences(context)
-    
+
     private var currentSessionId: UUID? = null
     private var isSessionActive = false
     private var signalSnapshotJob: Job? = null
@@ -51,11 +47,10 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
     private val _signalSnapshot = MutableStateFlow(LiveSignalSnapshot())
     val signalSnapshot: StateFlow<LiveSignalSnapshot> = _signalSnapshot.asStateFlow()
 
-    // MindRove ServerManager integrated in ViewModel (Point 1: Logic in ViewModel)
     private val serverManager = ServerManager { sensorData: SensorData ->
         handleEegData(sensorData)
     }
-    
+
     init {
         serverManager.start()
         Log.d(TAG, "ServerManager started in ViewModel, ip=${serverManager.ipAddress}")
@@ -64,11 +59,10 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
     private fun handleEegData(sensorData: SensorData) {
         if (!loggedFirstEegSample) {
             loggedFirstEegSample = true
-            Log.d(TAG, "First EEG sample: measurements=${sensorData.numberOfMeasurement}")
+            Log.d(TAG, "First EEG sample")
         }
         EegSignalTracker.markSample(System.currentTimeMillis())
-        
-        // Feed data to the manager
+
         onEegDataReceived(0, sensorData.channel1.toDouble())
         onEegDataReceived(1, sensorData.channel2.toDouble())
         onEegDataReceived(2, sensorData.channel3.toDouble())
@@ -88,95 +82,78 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
             }
         }
     }
-    
-    /**
-     * Start a new listening session and begin collecting sensor data
-     */
+
     fun startListeningSession(userId: UUID, songId: UUID) {
-        if (isSessionActive) {
-            Log.d(TAG, "Listening session already active, skipping duplicate start")
-            return
-        }
+        if (isSessionActive) return
 
         isSessionActive = true
         viewModelScope.launch {
             try {
-                // Create session on backend
-                val sessionId = UUID.randomUUID() 
+                val sessionId = UUID.randomUUID()
                 currentSessionId = sessionId
                 userPreferences.saveLastSessionId(sessionId.toString())
-                
-                Log.d(TAG, "Starting listening session: $sessionId")
-                
-                // Start sensor collection
-                val status = sensorManager.startCollecting()
+
+                sensorManager.startCollecting()
                 wearableHeartRateBuffer.clear()
                 wearableEdaBuffer.clear()
                 loggedFirstEegSample = false
                 startWearableMessageCollection()
                 WearableSamplingSender.sendStartSampling(context, isInference = false)
-
                 startSignalSnapshotUpdates()
-                Log.d(TAG, "Session active with sensors: hr=${status.heartRateRegistered}, eda=${status.edaRegistered}")
-                
             } catch (e: Exception) {
                 isSessionActive = false
                 Log.e(TAG, "Error starting session", e)
             }
         }
     }
-    
-    /**
-     * Stop the listening session and upload collected data
-     */
+
     fun stopListeningSession(userRating: Int = 3) {
         viewModelScope.launch {
             try {
-                if (!isSessionActive || currentSessionId == null) {
+                // ✅ Fixed: Local copy prevents "Smart Cast" error
+                val sessionId = currentSessionId
+                if (!isSessionActive || sessionId == null) {
                     Log.w(TAG, "No active session to stop")
                     return@launch
                 }
-                
-                Log.d(TAG, "Stopping listening session: $currentSessionId")
-                
-                // Stop sensor collection
+
                 sensorManager.stopCollecting()
                 isSessionActive = false
                 stopWearableMessageCollection()
                 stopSignalSnapshotUpdates()
                 userPreferences.clearLastSessionId()
-                
-                // Get collected data
+
                 val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
                 val edaData = sensorManager.getEdaBuffer() + wearableEdaBuffer.toList()
                 val eegData = sensorManager.getEegBuffer()
-                
-                // Send data to backend...
+
+                // ✅ Fixed: Using the stable 'sessionId' reference
                 if (hrData.isNotEmpty()) {
-                    sensorRepository.sendWearableData(currentSessionId!!, "hr", "user", userRating, hrData)
+                    sensorRepository.sendWearableData(sessionId, "hr", "user", userRating, hrData)
                 }
                 if (edaData.isNotEmpty()) {
-                    sensorRepository.sendWearableData(currentSessionId!!, "eda", "user", userRating, edaData)
+                    sensorRepository.sendWearableData(sessionId, "eda", "user", userRating, edaData)
                 }
                 if (eegData.isNotEmpty()) {
-                    sensorRepository.sendEegData(currentSessionId!!, "user", userRating, eegData)
+                    sensorRepository.sendEegData(sessionId, "user", userRating, eegData)
                 }
-                
+
                 sensorManager.clearBuffers()
-                
+                currentSessionId = null
+
             } catch (e: Exception) {
                 Log.e(TAG, "Error stopping session", e)
             }
         }
     }
-    
+
     private fun onEegDataReceived(channel: Int, value: Double) {
         if (isSessionActive) {
             sensorManager.addEegData(channel, value)
             updateSignalSnapshot()
         }
     }
-    
+
     fun isCollecting(): Boolean = isSessionActive
 
     private fun startSignalSnapshotUpdates() {
@@ -197,17 +174,15 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
     private fun updateSignalSnapshot(isCollecting: Boolean = isSessionActive) {
         val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
         val edaData = sensorManager.getEdaBuffer() + wearableEdaBuffer.toList()
-        val eegData = sensorManager.getEegBuffer()
 
         _signalSnapshot.value = LiveSignalSnapshot(
             isCollecting = isCollecting,
             heartRateSamples = hrData.size,
             edaSamples = edaData.size,
-            eegSamples = eegData.size,
+            eegSamples = sensorManager.getEegBuffer().size,
             latestHeartRate = hrData.lastOrNull()?.value,
             latestEda = edaData.lastOrNull()?.value,
-            latestEeg = eegData.lastOrNull()?.value,
-            isEegConnected = true // If we are receiving data, it's connected
+            isEegConnected = true
         )
     }
 
@@ -246,9 +221,7 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
     override fun onCleared() {
         super.onCleared()
         serverManager.stop()
-        if (isSessionActive) {
-            sensorManager.stopCollecting()
-        }
+        if (isSessionActive) sensorManager.stopCollecting()
         stopWearableMessageCollection()
         signalSnapshotJob?.cancel()
     }

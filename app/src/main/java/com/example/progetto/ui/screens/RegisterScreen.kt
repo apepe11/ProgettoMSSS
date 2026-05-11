@@ -24,6 +24,7 @@ import com.example.progetto.ui.components.HeartTextField
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.LoginUiState
+import com.example.progetto.R
 
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource

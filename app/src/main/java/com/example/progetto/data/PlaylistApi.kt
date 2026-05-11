@@ -1,5 +1,6 @@
 package com.example.progetto.data
 
+import com.example.progetto.utils.InsightsResponse
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -29,9 +30,21 @@ interface PlaylistApi {
         @Body body: Map<String, String>
     ): Response<Map<String, Any>>
 
+    // Inside PlaylistApi.kt
     @GET("/api/songs/{song_id}/favorite/{user_id}")
     suspend fun checkFavorite(
         @Path("song_id") songId: String,
         @Path("user_id") userId: String
-    ): Response<Map<String, Any>>
+    ): Response<Map<String, Boolean>> // Change 'Any' to 'Boolean' here
+
+    // ✅ FIXED: Using List<SongResponse> to match your model
+    @GET("/api/users/{user_id}/favorites")
+    suspend fun getFavoriteSongs(
+        @Path("user_id") userId: String
+    ): Response<List<SongResponse>>
+
+    @GET("/api/users/{user_id}/insights")
+    suspend fun getInsights(
+        @Path("user_id") userId: String
+    ): Response<InsightsResponse>
 }

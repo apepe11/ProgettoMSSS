@@ -3,10 +3,6 @@ package com.example.progetto.data.repositories
 import com.example.progetto.data.*
 import retrofit2.Response
 
-/**
- * Repository handling Authentication data operations.
- * Separates the ViewModel from the data source (Retrofit).
- */
 class AuthRepository {
     private val authApi = RetrofitClient.authApiService
 
@@ -22,6 +18,8 @@ class AuthRepository {
         return authApi.getReviews(userId)
     }
 
+    // This is likely where the mismatch was.
+    // We make it return exactly what the authApi returns.
     suspend fun saveReview(request: SongReviewRequest): Response<SongReviewResponse> {
         return authApi.saveReview(request)
     }

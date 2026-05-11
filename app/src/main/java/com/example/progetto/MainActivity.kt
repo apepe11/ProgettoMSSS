@@ -1,16 +1,18 @@
 package com.example.progetto
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
+import android.provider.Settings
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image as ComposeImage
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -26,24 +28,22 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.example.progetto.ui.screens.*
 import com.example.progetto.ui.theme.HeartMusicTheme
-import com.example.progetto.utils.SensorAvailability
-import com.example.progetto.utils.SensorCollectionViewModel
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
+import com.example.progetto.utils.SensorAvailability
+import com.example.progetto.utils.SensorCollectionViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -62,8 +62,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-import androidx.compose.ui.res.stringResource
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GlobalDrawerNavigation() {
@@ -75,25 +73,19 @@ fun GlobalDrawerNavigation() {
     val authViewModel: AuthViewModel = viewModel()
     val playerViewModel: PlayerViewModel = viewModel()
     val context = LocalContext.current
-    
-    // Logic moved to ViewModel (Point 1: Separation of Concerns)
-    val sensorViewModel = remember { SensorCollectionViewModel.get(context) }
 
-    // Track current route to know when to show the top menu
+    val sensorViewModel = remember { SensorCollectionViewModel.get(context) }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
-    // Usiamo remember per reagire ai cambiamenti nel ViewModel
     val currentUser = authViewModel.currentUser
     val username = currentUser?.username ?: stringResource(R.string.nav_guest)
 
-    // Sincronizza lo userId nel PlayerViewModel
     LaunchedEffect(currentUser) {
         playerViewModel.setUserId(currentUser?.userId)
     }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        // Se l'utente è già loggato all'avvio, mandalo alla Home direttamente
         LaunchedEffect(authViewModel.currentUser) {
             if (authViewModel.currentUser != null && navController.currentDestination?.route == "welcome") {
                 navController.navigate("home") {
@@ -112,9 +104,7 @@ fun GlobalDrawerNavigation() {
                     ) {
                         Spacer(modifier = Modifier.height(24.dp))
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
+                            modifier = Modifier.fillMaxWidth().padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.Start
                         ) {
@@ -144,11 +134,7 @@ fun GlobalDrawerNavigation() {
                                     if (route == "emotion_analysis" &&
                                         !(SensorAvailability.hasEegSignal() && SensorAvailability.hasWatchSignal(context))
                                     ) {
-                                        Toast.makeText(
-                                            context,
-                                            context.getString(R.string.toast_connect_sensors),
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        Toast.makeText(context, context.getString(R.string.toast_connect_sensors), Toast.LENGTH_SHORT).show()
                                         return@NavigationDrawerItem
                                     }
                                     scope.launch { drawerState.close() }
@@ -172,9 +158,7 @@ fun GlobalDrawerNavigation() {
                                     drawerState.close()
                                     authViewModel.logout()
                                 }
-                                navController.navigate("welcome") {
-                                    popUpTo(0) { inclusive = true }
-                                }
+                                navController.navigate("welcome") { popUpTo(0) { inclusive = true } }
                             },
                             icon = { Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, tint = Color.Red) },
                             modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
@@ -185,10 +169,8 @@ fun GlobalDrawerNavigation() {
             }
         ) {
             CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                // The Global Scaffold
                 Scaffold(
                     topBar = {
-                        // Do not show the top bar on login/welcome screens
                         val hideTopBarRoutes = listOf("welcome", "login", "register", "registration_success", "forgot_password", "player")
                         val isPlayerRoute = currentRoute?.startsWith("player") == true
                         if (currentRoute !in hideTopBarRoutes && !isPlayerRoute) {
@@ -198,13 +180,9 @@ fun GlobalDrawerNavigation() {
                                         ComposeImage(
                                             painter = painterResource(id = R.drawable.logo),
                                             contentDescription = stringResource(R.string.nav_logo_description),
-                                            modifier = Modifier
-                                                .size(80.dp)
-                                                .clickable {
-                                                    navController.navigate("home") {
-                                                        popUpTo("home") { inclusive = true }
-                                                    }
-                                                },
+                                            modifier = Modifier.size(80.dp).clickable {
+                                                navController.navigate("home") { popUpTo("home") { inclusive = true } }
+                                            },
                                             contentScale = ContentScale.Fit
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -220,9 +198,7 @@ fun GlobalDrawerNavigation() {
                                         )
                                     }
                                 },
-                                colors = TopAppBarDefaults.topAppBarColors(
-                                    containerColor = Color.Transparent
-                                )
+                                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
                             )
                         }
                     }
@@ -240,9 +216,6 @@ fun GlobalDrawerNavigation() {
         }
     }
 }
-
-import android.content.Intent
-import android.provider.Settings
 
 @Composable
 private fun EnsureRuntimePermissions() {
@@ -264,48 +237,24 @@ private fun EnsureRuntimePermissions() {
         onResult = { result ->
             val allGranted = result.values.all { it }
             if (!allGranted) {
-                // If not all granted, check if any was permanently denied
                 val permanentlyDenied = requiredPermissions.any { permission ->
                     ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED &&
-                    (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(permission) == false
+                            (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(permission) == false
                 }
-                if (permanentlyDenied) {
-                    showSettingsRationale = true
-                } else {
-                    Toast.makeText(context, context.getString(R.string.permission_denied_toast), Toast.LENGTH_LONG).show()
-                }
+                if (permanentlyDenied) showSettingsRationale = true
+                else Toast.makeText(context, context.getString(R.string.permission_denied_toast), Toast.LENGTH_LONG).show()
             }
         }
     )
 
-    fun checkAndRequestPermissions() {
-        val missingPermissions = requiredPermissions.filter { permission ->
-            ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (missingPermissions.isNotEmpty()) {
-            val shouldShowRationale = missingPermissions.any { 
-                (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(it) == true 
-            }
-            
-            if (shouldShowRationale) {
-                showRationale = true
-            } else {
-                // Check if they are permanently denied before asking
-                val isPermanentlyDenied = missingPermissions.any { 
-                    (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(it) == false 
-                }
-                
-                // On some Android versions, if we never asked, shouldShowRequestPermissionRationale is false.
-                // So we only show settings if we are sure it's a denial.
-                // A better way is to just launch the request, and handle the result.
-                launcher.launch(missingPermissions.toTypedArray())
-            }
-        }
-    }
-
     LaunchedEffect(Unit) {
-        checkAndRequestPermissions()
+        val missingPermissions = requiredPermissions.filter {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missingPermissions.isNotEmpty()) {
+            val shouldShowRationale = missingPermissions.any { (context as? ComponentActivity)?.shouldShowRequestPermissionRationale(it) == true }
+            if (shouldShowRationale) showRationale = true else launcher.launch(missingPermissions.toTypedArray())
+        }
     }
 
     if (showRationale) {
@@ -317,15 +266,9 @@ private fun EnsureRuntimePermissions() {
                 TextButton(onClick = {
                     showRationale = false
                     launcher.launch(requiredPermissions.toTypedArray())
-                }) {
-                    Text(stringResource(R.string.permission_grant))
-                }
+                }) { Text(stringResource(R.string.permission_grant)) }
             },
-            dismissButton = {
-                TextButton(onClick = { showRationale = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            }
+            dismissButton = { TextButton(onClick = { showRationale = false }) { Text(stringResource(android.R.string.cancel)) } }
         )
     }
 
@@ -337,19 +280,11 @@ private fun EnsureRuntimePermissions() {
             confirmButton = {
                 TextButton(onClick = {
                     showSettingsRationale = false
-                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                        data = Uri.fromParts("package", context.packageName, null)
-                    }
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply { data = Uri.fromParts("package", context.packageName, null) }
                     context.startActivity(intent)
-                }) {
-                    Text(stringResource(R.string.permission_settings))
-                }
+                }) { Text(stringResource(R.string.permission_settings)) }
             },
-            dismissButton = {
-                TextButton(onClick = { showSettingsRationale = false }) {
-                    Text(stringResource(android.R.string.cancel))
-                }
-            }
+            dismissButton = { TextButton(onClick = { showSettingsRationale = false }) { Text(stringResource(android.R.string.cancel)) } }
         )
     }
 }
@@ -394,18 +329,10 @@ fun AppNavigation(
         }
         composable("registration_success") {
             RegistrationSuccessScreen(
-                onNavigateToLogin = {
-                    navController.navigate("login") {
-                        popUpTo("welcome") { inclusive = false }
-                    }
-                }
+                onNavigateToLogin = { navController.navigate("login") { popUpTo("welcome") { inclusive = false } } }
             )
         }
-        composable("forgot_password") {
-            ForgotPasswordScreen(
-                onNavigateBack = { navController.popBackStack() }
-            )
-        }
+        composable("forgot_password") { ForgotPasswordScreen(onNavigateBack = { navController.popBackStack() }) }
         composable("home") {
             HomeScreen(
                 onOpenDrawer = onOpenDrawer,
@@ -416,12 +343,8 @@ fun AppNavigation(
         composable("listening_mode") {
             ListeningModeScreen(
                 onOpenDrawer = onOpenDrawer,
-                onNavigateToPlaylist = { playlistId ->
-                    navController.navigate("playlist_detail/$playlistId")
-                },
-                onNavigateToPlayer = { title, artist, url, songId ->
-                    navigateToPlayer(title, artist, url, songId)
-                },
+                onNavigateToPlaylist = { navController.navigate("playlist_detail/$it") },
+                onNavigateToPlayer = { t, a, u, s -> navigateToPlayer(t, a, u, s) },
                 onNavigateBack = { navController.popBackStack() },
                 playerViewModel = playerViewModel
             )
@@ -433,60 +356,32 @@ fun AppNavigation(
             val playlistId = backStackEntry.arguments?.getString("playlistId") ?: ""
             PlaylistDetailScreen(
                 playlistId = playlistId,
-                onNavigateToPlayer = { title, artist, url, songId ->
-                    navigateToPlayer(title, artist, url, songId)
-                },
+                onNavigateToPlayer = { t, a, u, s -> navigateToPlayer(t, a, u, s) },
                 onNavigateBack = { navController.popBackStack() },
                 playerViewModel = playerViewModel
             )
         }
-        composable("your_feelings") {
-            YourFeelingsScreen(
-                onOpenDrawer = onOpenDrawer,
-                authViewModel = authViewModel
-            )
-        }
+        composable("your_feelings") { YourFeelingsScreen(onOpenDrawer = onOpenDrawer, authViewModel = authViewModel) }
         composable("insights") {
-            // 1. Get the ID from your authViewModel
             val currentUserId = authViewModel.currentUser?.userId ?: ""
-
-            InsightsScreen(
-                currentUserId = currentUserId, // 2. Pass it to your InsightsScreen!
-                onOpenDrawer = onOpenDrawer
-            )
+            InsightsScreen(currentUserId = currentUserId, onOpenDrawer = onOpenDrawer)
         }
         composable("favourite_songs") {
-            // 1. Grab the real, currently logged-in user's ID from your AuthViewModel
-            // If it's null for some reason, we pass an empty string as a safe fallback
             val currentUserId = authViewModel.currentUser?.userId ?: ""
-
-            FavouriteSongsScreen(
-                currentUserId = currentUserId, // 2. Pass it into the screen right here!
-                onOpenDrawer = onOpenDrawer,
-                onNavigateToPlayer = { title, artist, url, songId ->
-                    navigateToPlayer(title, artist, url, songId)
-                }
-            )
+            FavouriteSongsScreen(currentUserId = currentUserId, onOpenDrawer = onOpenDrawer, onNavigateToPlayer = { t, a, u, s -> navigateToPlayer(t, a, u, s) })
         }
         composable("emotion_analysis") {
             EmotionAnalysisScreen(
                 onOpenDrawer = onOpenDrawer,
                 onReviewSong = { navController.navigate("review_emotion") },
-                onGoOn = { /* Handled internally in screen */ },
-                onPlaySong = { title, artist, url, songId ->
-                    navigateToPlayer(title, artist, url, songId)
-                },
+                onGoOn = { },
+                onPlaySong = { t, a, u, s -> navigateToPlayer(t, a, u, s) },
                 authViewModel = authViewModel,
                 playerViewModel = playerViewModel
             )
         }
         composable("review_emotion") {
-            ReviewEmotionScreen(
-                onOpenDrawer = onOpenDrawer,
-                onNavigateBack = { navController.popBackStack() },
-                onSaveFeeling = { navController.popBackStack() },
-                authViewModel = authViewModel
-            )
+            ReviewEmotionScreen(onOpenDrawer = onOpenDrawer, onNavigateBack = { navController.popBackStack() }, onSaveFeeling = { navController.popBackStack() }, authViewModel = authViewModel)
         }
         composable(
             route = "player?title={title}&artist={artist}&url={url}&songId={songId}",
@@ -501,14 +396,7 @@ fun AppNavigation(
             val artist = backStackEntry.arguments?.getString("artist") ?: "Unknown"
             val url = backStackEntry.arguments?.getString("url") ?: ""
             val songId = backStackEntry.arguments?.getString("songId") ?: ""
-            MusicPlayerScreen(
-                songTitle = title,
-                artistName = artist,
-                songUrl = url,
-                songId = songId,
-                onNavigateBack = { navController.popBackStack() },
-                viewModel = playerViewModel
-            )
+            MusicPlayerScreen(songTitle = title, artistName = artist, songUrl = url, songId = songId, onNavigateBack = { navController.popBackStack() }, viewModel = playerViewModel)
         }
     }
 }

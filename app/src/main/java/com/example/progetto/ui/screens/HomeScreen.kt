@@ -1,6 +1,8 @@
 package com.example.progetto.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -8,23 +10,24 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.progetto.R
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.utils.SensorAvailability
 import kotlinx.coroutines.delay
 
-import androidx.compose.ui.res.stringResource
-
 @Composable
 fun HomeScreen(
-    onOpenDrawer: () -> Unit = {}, // You can likely delete this parameter later since the global bar handles the drawer now!
+    onOpenDrawer: () -> Unit = {},
     onNavigateToEmotionAnalysis: () -> Unit = {},
     onNavigateToListeningMode: () -> Unit = {}
 ) {
@@ -44,7 +47,7 @@ fun HomeScreen(
         }
     }
 
-    // Removed the Scaffold and TopAppBar entirely!
+    // Main container filling the full screen
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -53,35 +56,43 @@ fun HomeScreen(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Area Modalità
+        // This Column uses weight(1f) on children to fill all vertical space
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            // --- BUTTON 1: EMOTION ANALYSIS ---
             ModeButton(
-                title = stringResource(R.string.home_emotion_analysis),
-                subtitle = stringResource(R.string.home_emotion_analysis_subtitle),
+                title = "Emotion Analysis",
+                subtitle = "Analyze your feelings with music",
                 isEnabled = sensorsAvailable,
+                imageRes = R.drawable.emotion_analysis,
+                modifier = Modifier.weight(1f), // Takes up 50% of the screen
                 onClick = onNavigateToEmotionAnalysis
             )
 
+            // Sensor text tucked neatly in the middle
             if (!sensorsAvailable) {
                 Text(
-                    text = stringResource(R.string.home_sensors_not_available),
+                    text = "Connect EEG and watch to enable Emotion Analysis.",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    modifier = Modifier.semantics { 
-                        // Per TalkBack, leggiamo questo come un avviso
-                    }
+                    fontSize = 11.sp,
+                    modifier = Modifier.padding(horizontal = 8.dp)
                 )
             }
 
+            // --- BUTTON 2: LISTENING MODE ---
             ModeButton(
-                title = stringResource(R.string.home_listening_mode),
-                subtitle = stringResource(R.string.home_listening_mode_subtitle),
+                title = "Listening Mode",
+                subtitle = "Discover your library",
                 isEnabled = true,
+                imageRes = R.drawable.listening_mode,
+                modifier = Modifier.weight(1f), // Takes up the other 50%
                 onClick = onNavigateToListeningMode
             )
+
+            // Extra spacer at bottom to ensure it doesn't hit the navigation bar
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
@@ -91,48 +102,63 @@ fun ModeButton(
     title: String,
     subtitle: String?,
     isEnabled: Boolean,
+    imageRes: Int,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
-    val openModeLabel = stringResource(R.string.home_open_mode_description, title)
+    val purpleBorder = Color(0xFF8E44AD)
+
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .height(240.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .border(
+                width = 3.dp,
+                color = if (isEnabled) purpleBorder else Color.LightGray.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(28.dp)
+            )
             .clickable(
                 enabled = isEnabled,
-                onClickLabel = openModeLabel,
                 role = Role.Button
-            ) { onClick() }
-            .semantics(mergeDescendants = true) {
-                // Merge title and subtitle for a single announcement
-            },
+            ) { onClick() },
         shape = RoundedCornerShape(28.dp),
-        color = if (isEnabled) MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-        shadowElevation = 4.dp
+        color = Color.White,
+        shadowElevation = 2.dp
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Image now scales dynamically based on button height
+            Image(
+                painter = painterResource(id = imageRes),
+                contentDescription = null,
+                modifier = Modifier
+                    .fillMaxHeight(0.6f) // Larger images: 60% of button height
+                    .aspectRatio(1f)      // Keep it perfectly square
+                    .padding(bottom = 12.dp)
+                    .alpha(if (isEnabled) 1f else 0.35f)
+            )
+
+            // Smaller Title
+            Text(
+                text = title,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isEnabled) purpleBorder else purpleBorder.copy(alpha = 0.4f)
+            )
+
+            if (subtitle != null) {
+                // Smaller Subtitle
                 Text(
-                    text = title,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isEnabled) Color.White else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                    text = subtitle,
+                    fontSize = 12.sp,
+                    color = if (isEnabled) Color.DarkGray else Color.Gray.copy(alpha = 0.4f),
+                    fontWeight = FontWeight.Normal
                 )
-                if (subtitle != null) {
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = subtitle,
-                        fontSize = 16.sp,
-                        color = if (isEnabled) Color.White.copy(alpha = 0.9f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                    )
-                } else {
-                    // Placeholder spacer for precision when subtitle is missing
-                    Spacer(modifier = Modifier.height(32.dp))
-                }
             }
         }
     }

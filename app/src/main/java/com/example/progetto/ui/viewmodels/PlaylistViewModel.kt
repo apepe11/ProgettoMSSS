@@ -6,6 +6,7 @@ import com.example.progetto.data.PlaylistDetailResponse
 import com.example.progetto.data.repositories.PlaylistRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import com.example.progetto.data.SongResponse
 
 class PlaylistViewModel : ViewModel() {
     private val playlistRepository = PlaylistRepository()
