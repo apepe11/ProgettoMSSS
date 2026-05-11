@@ -743,7 +743,7 @@ def trigger_song_import():
         return jsonify({"error": str(e)}), 500
 
 
-@api.route('/api/insights/<user_id>', methods=['GET'])
+@api.route('/api/users/<user_id>/insights', methods=['GET'])
 def get_insights(user_id):
     try:
         # 1. Query for APP DETECTED totals
