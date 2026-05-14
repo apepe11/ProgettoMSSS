@@ -13,15 +13,12 @@ class SensorRepository private constructor(context: Context) : SensorEventListen
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val isCollecting = AtomicBoolean(false)
     private var heartRateSensor: Sensor? = null
-    private var edaSensor: Sensor? = null
+    @Volatile private var latestHeartRate: Float? = null
 
     private val heartRateSamples = Collections.synchronizedList(mutableListOf<WearableSample>())
-    private val edaSamples = Collections.synchronizedList(mutableListOf<WearableSample>())
 
     companion object {
         private const val TAG = "WearSensorRepository"
-        private const val SENSOR_TYPE_EDA_FOODBACK = 65554
-        private const val SENSOR_TYPE_EDA_GENERIC = 28
 
         @Volatile private var instance: SensorRepository? = null
 
@@ -34,17 +31,12 @@ class SensorRepository private constructor(context: Context) : SensorEventListen
 
     fun startSensors() {
         heartRateSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE)
-        edaSensor = findEdaSensor()
 
-        val hrRegistered = heartRateSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
+        val hrRegistered = heartRateSensor?.let { sensor ->
+            registerSensor("hr", sensor)
         } ?: false
 
-        val edaRegistered = edaSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_FASTEST)
-        } ?: false
-
-        Log.d(TAG, "Sensors registered: hr=$hrRegistered eda=$edaRegistered edaSensor=${edaSensor?.name}")
+        Log.d(TAG, "Sensors registered: hr=$hrRegistered")
     }
 
     fun stopSensors() {
@@ -59,16 +51,22 @@ class SensorRepository private constructor(context: Context) : SensorEventListen
 
     fun stopCollecting() {
         isCollecting.set(false)
-        Log.d(TAG, "Collection stopped: hr=${heartRateSamples.size} eda=${edaSamples.size}")
-    }
-
-    fun snapshot(): Pair<List<WearableSample>, List<WearableSample>> {
-        return heartRateSamples.toList() to edaSamples.toList()
+        Log.d(TAG, "Collection stopped: hr=${heartRateSamples.size}")
     }
 
     fun clear() {
         heartRateSamples.clear()
-        edaSamples.clear()
+    }
+
+    fun drainSnapshotWithFallback(): List<WearableSample> {
+        val heartRates = heartRateSamples.toList()
+        clear()
+        val now = System.currentTimeMillis()
+        return if (heartRates.isEmpty()) {
+            latestHeartRate?.let { listOf(WearableSample(now, it)) } ?: emptyList()
+        } else {
+            heartRates
+        }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -80,28 +78,33 @@ class SensorRepository private constructor(context: Context) : SensorEventListen
         )
 
         when (event.sensor.type) {
-            Sensor.TYPE_HEART_RATE -> heartRateSamples.add(sample)
-            SENSOR_TYPE_EDA_FOODBACK, SENSOR_TYPE_EDA_GENERIC -> edaSamples.add(sample)
-            else -> {
-                if (event.sensor == edaSensor) {
-                    edaSamples.add(sample)
-                }
+            Sensor.TYPE_HEART_RATE -> {
+                latestHeartRate = sample.value
+                heartRateSamples.add(sample)
             }
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
 
-    private fun findEdaSensor(): Sensor? {
-        sensorManager.getDefaultSensor(SENSOR_TYPE_EDA_FOODBACK)?.let { return it }
-        sensorManager.getDefaultSensor(SENSOR_TYPE_EDA_GENERIC)?.let { return it }
-
-        return sensorManager.getSensorList(Sensor.TYPE_ALL).firstOrNull { sensor ->
-            val name = sensor.name.lowercase()
-            name.contains("eda") ||
-                name.contains("electrodermal") ||
-                name.contains("skin conductance") ||
-                name.contains("galvanic")
+    private fun registerSensor(label: String, sensor: Sensor): Boolean {
+        return try {
+            val registered = sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST)
+            Log.d(TAG, "Register $label sensor result=$registered sensor=${sensor.describe()}")
+            registered
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Register $label sensor blocked by permission: ${sensor.describe()}", e)
+            false
+        } catch (e: RuntimeException) {
+            Log.e(TAG, "Register $label sensor failed: ${sensor.describe()}", e)
+            false
         }
+    }
+
+    private fun Sensor.describe(): String {
+        val permission = runCatching {
+            Sensor::class.java.getMethod("getRequiredPermission").invoke(this) as? String
+        }.getOrNull().orEmpty().ifBlank { "unknown" }
+        return "name=$name type=$type stringType=$stringType vendor=$vendor permission=$permission wakeUp=$isWakeUpSensor"
     }
 }

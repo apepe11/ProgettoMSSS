@@ -55,7 +55,6 @@ NUM_CLASSES = 5
 class DatasetBundle:
     x_eeg: np.ndarray
     x_hr: np.ndarray
-    x_eda: np.ndarray
     y: np.ndarray
     groups: np.ndarray
 
@@ -165,27 +164,24 @@ def load_wearable_epochs(wearable_csv: Path) -> Dict[Tuple[int, str, int], Tuple
 def build_aligned_dataset(
     eeg_map: Dict[Tuple[int, str, int], Tuple[np.ndarray, int]],
     hr_map: Dict[Tuple[int, str, int], Tuple[np.ndarray, int]],
-    eda_map: Dict[Tuple[int, str, int], Tuple[np.ndarray, int]],
 ) -> DatasetBundle:
-    keys = sorted(set(eeg_map.keys()) & set(hr_map.keys()) & set(eda_map.keys()))
+    keys = sorted(set(eeg_map.keys()) & set(hr_map.keys()))
     if not keys:
-        raise ValueError("No aligned epochs across EEG, HR, EDA. Check input files.")
+        raise ValueError("No aligned epochs across EEG and HR. Check input files.")
 
-    x_eeg, x_hr, x_eda, y, groups = [], [], [], [], []
+    x_eeg, x_hr, y, groups = [], [], [], []
 
     for key in keys:
         eeg_x, eeg_y = eeg_map[key]
         hr_x, hr_y = hr_map[key]
-        eda_x, eda_y = eda_map[key]
 
         # label consistency check
-        if not (eeg_y == hr_y == eda_y):
+        if eeg_y != hr_y:
             continue
 
         exp, _subj, _epoch = key
         x_eeg.append(eeg_x)
         x_hr.append(hr_x)
-        x_eda.append(eda_x)
         y.append(eeg_y)
         groups.append(exp)  # session-level grouping to prevent leakage
 
@@ -195,7 +191,6 @@ def build_aligned_dataset(
     return DatasetBundle(
         x_eeg=np.stack(x_eeg).astype(np.float32),
         x_hr=np.stack(x_hr).astype(np.float32),
-        x_eda=np.stack(x_eda).astype(np.float32),
         y=np.array(y, dtype=np.int64),
         groups=np.array(groups, dtype=np.int64),
     )
@@ -228,7 +223,6 @@ def split_grouped(bundle: DatasetBundle, random_state: int = 42):
         return DatasetBundle(
             x_eeg=bundle.x_eeg[indices],
             x_hr=bundle.x_hr[indices],
-            x_eda=bundle.x_eda[indices],
             y=bundle.y[indices],
             groups=bundle.groups[indices],
         )
@@ -271,7 +265,6 @@ def build_model(channel_means: np.ndarray, channel_stds: np.ndarray) -> Model:
 
     eeg_in = Input(shape=(6, EEG_SAMPLES_PER_EPOCH, 1), name="eeg_input")
     hr_in = Input(shape=(1, AUX_SAMPLES_PER_EPOCH, 1), name="hr_input")
-    eda_in = Input(shape=(1, AUX_SAMPLES_PER_EPOCH, 1), name="eda_input")
 
     x = Lambda(lambda z: apply_fir(z, hp_coeffs), name="hp")(eeg_in)
     x = Lambda(lambda z: apply_fir(z, bp_coeffs), name="bp")(x)
@@ -279,8 +272,8 @@ def build_model(channel_means: np.ndarray, channel_stds: np.ndarray) -> Model:
     x = Lambda(lambda z: apply_fir(z, aa_coeffs), name="aa")(x)
     x = Lambda(lambda z: z[:, :, ::dec_factor, :], name="decimate")(x)
 
-    merged = Concatenate(axis=1)([x, hr_in, eda_in])  # (B,8,250,1)
-    chans = 8
+    merged = Concatenate(axis=1)([x, hr_in])  # (B,7,250,1)
+    chans = 7
 
     means = tf.constant(channel_means.reshape(1, -1, 1, 1), dtype=tf.float32)
     stds = tf.constant(np.clip(channel_stds, 1e-6, None).reshape(1, -1, 1, 1), dtype=tf.float32)
@@ -289,14 +282,6 @@ def build_model(channel_means: np.ndarray, channel_stds: np.ndarray) -> Model:
     # EEGNet block 1
     b1 = Conv2D(8, (1, kern_length), padding="same", use_bias=False)(norm)
     b1 = BatchNormalization()(b1)
-    b1 = DepthwiseConv2D(
-        (chans, 1),
-        use_bias=False,
-        depth_multiplier=2,
-        depthwise_constraint=max_norm(1.0),
-    )(b1)
-    b1 = BatchNormalization()(b1)
-    b1 = Activation("elu")(b1)
     b1 = AveragePooling2D((1, 4))(b1)
     b1 = Dropout(0.5)(b1)
 
@@ -311,7 +296,7 @@ def build_model(channel_means: np.ndarray, channel_stds: np.ndarray) -> Model:
     logits = Dense(NUM_CLASSES, kernel_constraint=max_norm(0.25), name="dense")(flat)
     out = Activation("softmax", name="softmax")(logits)
 
-    model = Model(inputs=[eeg_in, hr_in, eda_in], outputs=out, name="EmotionEEGNet")
+    model = Model(inputs=[eeg_in, hr_in], outputs=out, name="EmotionEEGNet")
     model.compile(
         optimizer=tf.keras.optimizers.Adam(1e-3),
         loss="sparse_categorical_crossentropy",
@@ -325,7 +310,6 @@ def evaluate_split(model: Model, split: DatasetBundle, split_name: str) -> Dict:
         {
             "eeg_input": split.x_eeg,
             "hr_input": split.x_hr,
-            "eda_input": split.x_eda,
         },
         verbose=0,
     )
@@ -346,7 +330,7 @@ def evaluate_split(model: Model, split: DatasetBundle, split_name: str) -> Dict:
 
 def make_channel_stats(train_split: DatasetBundle) -> Tuple[np.ndarray, np.ndarray]:
     # compute on training only (criticality fix: no train/test leakage)
-    x_merged = np.concatenate([train_split.x_eeg, train_split.x_hr, train_split.x_eda], axis=1)
+    x_merged = np.concatenate([train_split.x_eeg, train_split.x_hr], axis=1)
     means = x_merged.mean(axis=(0, 2, 3))
     stds = x_merged.std(axis=(0, 2, 3))
     return means.astype(np.float32), stds.astype(np.float32)
@@ -362,8 +346,10 @@ def export_tflite(model: Model, output_path: Path) -> None:
 def main():
     parser = argparse.ArgumentParser(description="Train multimodal emotion classifier")
     parser.add_argument("--eeg_csv", type=Path, required=True)
+    parser.add_argument("--eeg_fs", type=int, default=FS_EEG)
+    parser.add_argument("--aux_fs", type=int, default=FS_TARGET)
+    parser.add_argument("--epoch_sec", type=int, default=EPOCH_SEC)
     parser.add_argument("--hr_csv", type=Path, required=True)
-    parser.add_argument("--eda_csv", type=Path, required=True)
     parser.add_argument("--out_dir", type=Path, default=Path("models"))
     parser.add_argument("--epochs", type=int, default=250)
     parser.add_argument("--batch_size", type=int, default=64)
@@ -375,11 +361,17 @@ def main():
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
 
+    global FS_EEG, FS_TARGET, EPOCH_SEC, EEG_SAMPLES_PER_EPOCH, AUX_SAMPLES_PER_EPOCH
+    FS_EEG = args.eeg_fs
+    FS_TARGET = args.aux_fs
+    EPOCH_SEC = args.epoch_sec
+    EEG_SAMPLES_PER_EPOCH = FS_EEG * EPOCH_SEC
+    AUX_SAMPLES_PER_EPOCH = FS_TARGET * EPOCH_SEC
+
     eeg_map = load_eeg_epochs(args.eeg_csv)
     hr_map = load_wearable_epochs(args.hr_csv)
-    eda_map = load_wearable_epochs(args.eda_csv)
 
-    bundle = build_aligned_dataset(eeg_map, hr_map, eda_map)
+    bundle = build_aligned_dataset(eeg_map, hr_map)
     train_split, val_split, test_split = split_grouped(bundle, random_state=args.seed)
 
     channel_means, channel_stds = make_channel_stats(train_split)
@@ -402,14 +394,12 @@ def main():
         {
             "eeg_input": train_split.x_eeg,
             "hr_input": train_split.x_hr,
-            "eda_input": train_split.x_eda,
         },
         train_split.y,
         validation_data=(
             {
                 "eeg_input": val_split.x_eeg,
                 "hr_input": val_split.x_hr,
-                "eda_input": val_split.x_eda,
             },
             val_split.y,
         ),
@@ -443,7 +433,6 @@ def main():
         "input_shapes": {
             "eeg_input": [6, EEG_SAMPLES_PER_EPOCH, 1],
             "hr_input": [1, AUX_SAMPLES_PER_EPOCH, 1],
-            "eda_input": [1, AUX_SAMPLES_PER_EPOCH, 1],
         },
         "sampling": {
             "eeg_fs": FS_EEG,

@@ -21,6 +21,7 @@ import com.example.progetto.ui.viewmodels.FeelingViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.data.UserPreferences
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 import androidx.compose.ui.res.stringResource
@@ -52,6 +53,7 @@ fun ReviewEmotionScreen(
     var errorText by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val userId = authViewModel.currentUser?.userId
     val sessionId by produceState<String?>(initialValue = null, key1 = userId) {
         val prefs = UserPreferences(context)
@@ -215,7 +217,10 @@ fun ReviewEmotionScreen(
                         description = description,
                         detectedEmotion = selectedEmotion
                     ) {
-                        onSaveFeeling()
+                        scope.launch {
+                            UserPreferences(context).clearLastSessionId()
+                            onSaveFeeling()
+                        }
                     }
                 },
                 modifier = Modifier.weight(1f)

@@ -17,6 +17,11 @@ class SamplingMessageService : WearableListenerService() {
                 val json = runCatching { JSONObject(message) }.getOrNull()
                 val isInference = json?.optBoolean("isInference", false) ?: false
 
+                if (!SensorService.isRunning) {
+                    val sensorIntent = Intent(this, SensorService::class.java)
+                    ContextCompat.startForegroundService(this, sensorIntent)
+                }
+
                 val intent = Intent(this, SamplingService::class.java)
                     .putExtra(SamplingService.EXTRA_IS_INFERENCE, isInference)
                 ContextCompat.startForegroundService(this, intent)

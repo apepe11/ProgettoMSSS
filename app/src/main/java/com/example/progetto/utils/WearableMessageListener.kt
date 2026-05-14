@@ -20,7 +20,6 @@ class WearableMessageListener : MessageClient.OnMessageReceivedListener {
         private const val PATH_SAMPLING = "/sensor_series"
 
         val heartRateFlow = MutableSharedFlow<List<WearableData>>()
-        val edaFlow = MutableSharedFlow<List<WearableData>>()
     }
 
     override fun onMessageReceived(messageEvent: MessageEvent) {
@@ -37,7 +36,6 @@ class WearableMessageListener : MessageClient.OnMessageReceivedListener {
         try {
             val json = JSONObject(message)
             val heartRateJsonArray = json.getJSONArray("heart_rate")
-            val edaJsonArray = json.getJSONArray("eda")
 
             val heartRateData = List(heartRateJsonArray.length()) { index ->
                 val entry = heartRateJsonArray.getJSONObject(index)
@@ -47,18 +45,9 @@ class WearableMessageListener : MessageClient.OnMessageReceivedListener {
                 )
             }
 
-            val edaData = List(edaJsonArray.length()) { index ->
-                val entry = edaJsonArray.getJSONObject(index)
-                WearableData(
-                    timestamp = entry.getLong("timestamp"),
-                    value = entry.getDouble("value").toFloat()
-                )
-            }
-
             CoroutineScope(Dispatchers.Main).launch {
-                Log.d(TAG, "Parsed wearable samples: hr=${heartRateData.size}, eda=${edaData.size}")
+                Log.d(TAG, "Parsed wearable samples: hr=${heartRateData.size}")
                 heartRateFlow.emit(heartRateData)
-                edaFlow.emit(edaData)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing wearable JSON", e)

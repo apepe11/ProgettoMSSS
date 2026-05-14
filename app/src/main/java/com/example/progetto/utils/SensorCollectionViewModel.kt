@@ -2,8 +2,12 @@ package com.example.progetto.utils
 
 import android.content.Context
 import android.util.Log
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.google.android.gms.wearable.Wearable
 import com.example.progetto.data.UserPreferences
 import kotlinx.coroutines.Job
@@ -12,81 +16,100 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import com.example.progetto.data.repositories.SensorRepository
-import mylibrary.mindrove.SensorData
-import mylibrary.mindrove.ServerManager
+import java.util.UUID
 
 data class LiveSignalSnapshot(
     val isCollecting: Boolean = false,
     val heartRateSamples: Int = 0,
-    val edaSamples: Int = 0,
     val eegSamples: Int = 0,
     val latestHeartRate: Float? = null,
-    val latestEda: Float? = null,
-    val latestEeg: Float? = null,
-    val isEegConnected: Boolean = false
+    val latestEeg: Float? = null
 )
 
 /**
- * ViewModel managing sensor data collection from both Wear OS and EEG (MindRove).
- * Following MVVM, this class encapsulates the logic for data gathering, 
- * keeping it out of the Activity/UI layer.
+ * Example ViewModel showing how to integrate SensorManager with your app
+ * 
+ * Usage in your listening/emotion analysis screen:
+ * val viewModel = viewModel<SensorCollectionViewModel>(
+ *     factory = SensorCollectionViewModel.Factory(context, owner)
+ * )
+ * viewModel.startListeningSession(songId, userId)
+ * viewModel.stopListeningSession()
  */
-class SensorCollectionViewModel(private val context: Context) : ViewModel() {
+class SensorCollectionViewModel(
+    private val context: Context,
+    private val savedStateHandle: SavedStateHandle
+) : ViewModel() {
     
     private val sensorManager = SensorManager(context)
-    private val sensorRepository = SensorRepository()
+    private val networkManager = NetworkManager()
     private val userPreferences = UserPreferences(context)
     
     private var currentSessionId: UUID? = null
+    private var currentSongId: UUID? = null
     private var isSessionActive = false
+    private var isSessionPaused = false
     private var signalSnapshotJob: Job? = null
     private var wearableHeartRateJob: Job? = null
-    private var wearableEdaJob: Job? = null
     private var loggedFirstEegSample = false
+    private var eegFrameCount = 0
+    private var lastEegFrameId: Long = -1L
+    private var lastWearableHrTimestamp: Long = 0
     private val wearableMessageListener = WearableMessageListener()
     private val wearableHeartRateBuffer = mutableListOf<SensorReading>()
-    private val wearableEdaBuffer = mutableListOf<SensorReading>()
 
     private val _signalSnapshot = MutableStateFlow(LiveSignalSnapshot())
     val signalSnapshot: StateFlow<LiveSignalSnapshot> = _signalSnapshot.asStateFlow()
-
-    // MindRove ServerManager integrated in ViewModel (Point 1: Logic in ViewModel)
-    private val serverManager = ServerManager { sensorData: SensorData ->
-        handleEegData(sensorData)
-    }
     
-    init {
-        serverManager.start()
-        Log.d(TAG, "ServerManager started in ViewModel, ip=${serverManager.ipAddress}")
-    }
-
-    private fun handleEegData(sensorData: SensorData) {
-        if (!loggedFirstEegSample) {
-            loggedFirstEegSample = true
-            Log.d(TAG, "First EEG sample: measurements=${sensorData.numberOfMeasurement}")
-        }
-        EegSignalTracker.markSample(System.currentTimeMillis())
-        
-        // Feed data to the manager
-        onEegDataReceived(0, sensorData.channel1.toDouble())
-        onEegDataReceived(1, sensorData.channel2.toDouble())
-        onEegDataReceived(2, sensorData.channel3.toDouble())
-        onEegDataReceived(3, sensorData.channel4.toDouble())
-        onEegDataReceived(4, sensorData.channel5.toDouble())
-        onEegDataReceived(5, sensorData.channel6.toDouble())
-    }
-
     companion object {
-        private const val TAG = "SensorCollectionVM"
-        @Volatile private var instance: SensorCollectionViewModel? = null
+        private const val TAG = "SensorCollectionViewModel"
+        private const val EEG_MAX_SAMPLES = 15000
+        private const val WEARABLE_MAX_SAMPLES = 6000
+        private const val KEY_SESSION_ID = "session_id"
+        private const val KEY_SESSION_ACTIVE = "session_active"
+        private const val KEY_SESSION_PAUSED = "session_paused"
+        private const val KEY_SONG_ID = "song_id"
+    }
 
-        fun get(context: Context): SensorCollectionViewModel {
-            val appContext = context.applicationContext
-            return instance ?: synchronized(this) {
-                instance ?: SensorCollectionViewModel(appContext).also { instance = it }
+    class Factory(
+        private val context: Context,
+    ) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+            if (modelClass.isAssignableFrom(SensorCollectionViewModel::class.java)) {
+                val handle = extras.createSavedStateHandle()
+                @Suppress("UNCHECKED_CAST")
+                return SensorCollectionViewModel(context.applicationContext, handle) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+        }
+    }
+
+    init {
+        val restoredSession = savedStateHandle.get<String>(KEY_SESSION_ID)
+        if (!restoredSession.isNullOrBlank()) {
+            currentSessionId = runCatching { UUID.fromString(restoredSession) }.getOrNull()
+        }
+        val restoredSong = savedStateHandle.get<String>(KEY_SONG_ID)
+        if (!restoredSong.isNullOrBlank()) {
+            currentSongId = runCatching { UUID.fromString(restoredSong) }.getOrNull()
+        }
+        isSessionActive = savedStateHandle.get<Boolean>(KEY_SESSION_ACTIVE) ?: false
+        isSessionPaused = savedStateHandle.get<Boolean>(KEY_SESSION_PAUSED) ?: false
+    }
+
+    fun startOrResumeListeningSession(userId: UUID, songId: UUID) {
+        when {
+            isSessionPaused && currentSongId == songId -> {
+                resumeListeningSession()
+                return
+            }
+            isSessionActive && currentSongId == songId -> {
+                Log.d(TAG, "Listening session already active for this song, skipping duplicate start")
+                return
             }
         }
+
+        startListeningSession(userId, songId)
     }
     
     /**
@@ -101,29 +124,76 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
         isSessionActive = true
         viewModelScope.launch {
             try {
-                // Create session on backend
-                val sessionId = UUID.randomUUID() 
+                val sessionResult = networkManager.createTrainingSession(userId, songId)
+                val sessionId = sessionResult.getOrNull()
+                if (sessionId == null) {
+                    isSessionActive = false
+                    savedStateHandle[KEY_SESSION_ACTIVE] = false
+                    Log.e(TAG, "Failed to create training session", sessionResult.exceptionOrNull())
+                    return@launch
+                }
+
                 currentSessionId = sessionId
+                currentSongId = songId
+                savedStateHandle[KEY_SESSION_ID] = sessionId.toString()
+                savedStateHandle[KEY_SONG_ID] = songId.toString()
+                savedStateHandle[KEY_SESSION_ACTIVE] = true
+                savedStateHandle[KEY_SESSION_PAUSED] = false
                 userPreferences.saveLastSessionId(sessionId.toString())
-                
+
                 Log.d(TAG, "Starting listening session: $sessionId")
                 
                 // Start sensor collection
                 val status = sensorManager.startCollecting()
+                if (!status.hasAnySignal) {
+                    Log.w(TAG, "No wearable HR sensors available, continuing to collect EEG only")
+                }
                 wearableHeartRateBuffer.clear()
-                wearableEdaBuffer.clear()
                 loggedFirstEegSample = false
+                eegFrameCount = 0
+                lastEegFrameId = -1L
                 startWearableMessageCollection()
                 WearableSamplingSender.sendStartSampling(context, isInference = false)
 
                 startSignalSnapshotUpdates()
-                Log.d(TAG, "Session active with sensors: hr=${status.heartRateRegistered}, eda=${status.edaRegistered}")
+                Log.d(TAG, "Session active with sensors: hr=${status.heartRateRegistered}")
                 
             } catch (e: Exception) {
                 isSessionActive = false
+                savedStateHandle[KEY_SESSION_ACTIVE] = false
+                isSessionPaused = false
+                savedStateHandle[KEY_SESSION_PAUSED] = false
                 Log.e(TAG, "Error starting session", e)
             }
         }
+    }
+
+    fun pauseListeningSession() {
+        if (!isSessionActive || currentSessionId == null || isSessionPaused) {
+            return
+        }
+
+        Log.d(TAG, "Pausing listening session: $currentSessionId")
+        isSessionPaused = true
+        savedStateHandle[KEY_SESSION_PAUSED] = true
+        savedStateHandle[KEY_SESSION_ACTIVE] = true
+        sensorManager.stopCollecting()
+        updateSignalSnapshot(isCollecting = false)
+    }
+
+    fun resumeListeningSession() {
+        if (!isSessionPaused || currentSessionId == null || currentSongId == null) {
+            Log.w(TAG, "No paused session available to resume")
+            return
+        }
+
+        Log.d(TAG, "Resuming listening session: $currentSessionId")
+        isSessionActive = true
+        isSessionPaused = false
+        savedStateHandle[KEY_SESSION_ACTIVE] = true
+        savedStateHandle[KEY_SESSION_PAUSED] = false
+        sensorManager.startCollecting()
+        updateSignalSnapshot()
     }
     
     /**
@@ -142,27 +212,59 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
                 // Stop sensor collection
                 sensorManager.stopCollecting()
                 isSessionActive = false
+                isSessionPaused = false
+                savedStateHandle[KEY_SESSION_ACTIVE] = false
+                savedStateHandle[KEY_SESSION_PAUSED] = false
                 stopWearableMessageCollection()
                 stopSignalSnapshotUpdates()
-                userPreferences.clearLastSessionId()
                 
                 // Get collected data
                 val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
-                val edaData = sensorManager.getEdaBuffer() + wearableEdaBuffer.toList()
                 val eegData = sensorManager.getEegBuffer()
                 
-                // Send data to backend...
+                Log.d(TAG, "Collected HR samples: ${hrData.size}")
+                Log.d(TAG, "Collected EEG samples: ${eegData.size}")
+                
+                // Send data to backend for training
                 if (hrData.isNotEmpty()) {
-                    sensorRepository.sendWearableData(currentSessionId!!, "hr", "user", userRating, hrData)
-                }
-                if (edaData.isNotEmpty()) {
-                    sensorRepository.sendWearableData(currentSessionId!!, "eda", "user", userRating, edaData)
-                }
-                if (eegData.isNotEmpty()) {
-                    sensorRepository.sendEegData(currentSessionId!!, "user", userRating, eegData)
+                    val hrResult = networkManager.sendWearableData(
+                        sessionId = currentSessionId!!,
+                        sensorType = "hr",
+                        subject = "user",
+                        rating = userRating,
+                        sensorBuffer = hrData
+                    )
+                    hrResult.onSuccess {
+                        Log.d(TAG, "HR data sent successfully")
+                    }.onFailure {
+                        Log.e(TAG, "Failed to send HR data", it)
+                    }
                 }
                 
+                if (eegData.isNotEmpty()) {
+                    val eegResult = networkManager.sendEegData(
+                        sessionId = currentSessionId!!,
+                        subject = "user",
+                        rating = userRating,
+                        eegBuffer = eegData
+                    )
+                    eegResult.onSuccess {
+                        Log.d(TAG, "EEG data sent successfully")
+                    }.onFailure {
+                        Log.e(TAG, "Failed to send EEG data", it)
+                    }
+                }
+                
+                // Clear buffers
                 sensorManager.clearBuffers()
+                wearableHeartRateBuffer.clear()
+                lastWearableHrTimestamp = 0L
+                eegFrameCount = 0
+                lastEegFrameId = -1L
+                currentSessionId = null
+                currentSongId = null
+                savedStateHandle[KEY_SESSION_ID] = null
+                savedStateHandle[KEY_SONG_ID] = null
                 
             } catch (e: Exception) {
                 Log.e(TAG, "Error stopping session", e)
@@ -170,14 +272,36 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
         }
     }
     
-    private fun onEegDataReceived(channel: Int, value: Double) {
-        if (isSessionActive) {
-            sensorManager.addEegData(channel, value)
-            updateSignalSnapshot()
+    /**
+     * Add EEG data point from MindRove SDK
+     * Call this from your ServerManager callback
+     */
+    fun onEegDataReceived(channel: Int, value: Double, frameId: Long) {
+        if (!isSessionActive || isSessionPaused) {
+            return
         }
+
+        if (frameId != lastEegFrameId) {
+            lastEegFrameId = frameId
+            eegFrameCount += 1
+        }
+        if (eegFrameCount > EEG_MAX_SAMPLES) {
+            return
+        }
+        if (!loggedFirstEegSample) {
+            loggedFirstEegSample = true
+            Log.d(TAG, "First EEG sample received: channel=$channel value=$value")
+        }
+        sensorManager.addEegData(channel, value, frameId)
+        updateSignalSnapshot()
     }
     
-    fun isCollecting(): Boolean = isSessionActive
+    /**
+     * Check if a session is currently active
+     */
+    fun isCollecting(): Boolean = isSessionActive && !isSessionPaused
+
+    fun isPausedFor(songId: UUID): Boolean = isSessionPaused && currentSongId == songId
 
     private fun startSignalSnapshotUpdates() {
         signalSnapshotJob?.cancel()
@@ -194,58 +318,83 @@ class SensorCollectionViewModel(private val context: Context) : ViewModel() {
         updateSignalSnapshot(isCollecting = false)
     }
 
-    private fun updateSignalSnapshot(isCollecting: Boolean = isSessionActive) {
+    private fun updateSignalSnapshot(isCollecting: Boolean = isSessionActive && !isSessionPaused) {
         val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
-        val edaData = sensorManager.getEdaBuffer() + wearableEdaBuffer.toList()
         val eegData = sensorManager.getEegBuffer()
 
         _signalSnapshot.value = LiveSignalSnapshot(
             isCollecting = isCollecting,
             heartRateSamples = hrData.size,
-            edaSamples = edaData.size,
-            eegSamples = eegData.size,
+            eegSamples = eegFrameCount,
             latestHeartRate = hrData.lastOrNull()?.value,
-            latestEda = edaData.lastOrNull()?.value,
-            latestEeg = eegData.lastOrNull()?.value,
-            isEegConnected = true // If we are receiving data, it's connected
+            latestEeg = eegData.lastOrNull()?.value
         )
     }
 
     private fun startWearableMessageCollection() {
+        Log.d(TAG, "Registering WearableMessageListener")
         Wearable.getMessageClient(context).addListener(wearableMessageListener)
 
         wearableHeartRateJob?.cancel()
         wearableHeartRateJob = viewModelScope.launch {
             WearableMessageListener.heartRateFlow.collect { heartRates ->
-                if (heartRates.isNotEmpty()) {
-                    wearableHeartRateBuffer.clear()
-                    wearableHeartRateBuffer.addAll(heartRates.map { SensorReading(it.timestamp, "hr", it.value) })
-                    updateSignalSnapshot()
+                Log.d(TAG, "Wearable HR packet received: ${heartRates.size} samples")
+                if (!isSessionActive || isSessionPaused) {
+                    return@collect
                 }
-            }
-        }
-
-        wearableEdaJob?.cancel()
-        wearableEdaJob = viewModelScope.launch {
-            WearableMessageListener.edaFlow.collect { edaValues ->
-                if (edaValues.isNotEmpty()) {
-                    wearableEdaBuffer.clear()
-                    wearableEdaBuffer.addAll(edaValues.map { SensorReading(it.timestamp, "eda", it.value) })
+                if (heartRates.isNotEmpty()) {
+                    appendWearableSamples(
+                        source = heartRates,
+                        buffer = wearableHeartRateBuffer,
+                        type = "hr",
+                        maxSize = WEARABLE_MAX_SAMPLES
+                    ) { lastWearableHrTimestamp = it }
                     updateSignalSnapshot()
                 }
             }
         }
     }
 
+    private fun appendWearableSamples(
+        source: List<WearableData>,
+        buffer: MutableList<SensorReading>,
+        type: String,
+        maxSize: Int,
+        updateLastTimestamp: (Long) -> Unit
+    ) {
+        val lastTimestamp = when (type) {
+            "hr" -> lastWearableHrTimestamp
+            else -> 0L
+        }
+
+        val newSamples = source
+            .filter { it.timestamp > lastTimestamp }
+            .map {
+                SensorReading(
+                    timestamp = it.timestamp,
+                    type = type,
+                    value = it.value
+                )
+            }
+
+        if (newSamples.isEmpty()) return
+
+        buffer.addAll(newSamples)
+        if (buffer.size > maxSize) {
+            val trimCount = buffer.size - maxSize
+            buffer.subList(0, trimCount).clear()
+        }
+        updateLastTimestamp(newSamples.last().timestamp)
+    }
+
     private fun stopWearableMessageCollection() {
         wearableHeartRateJob?.cancel()
-        wearableEdaJob?.cancel()
+        Log.d(TAG, "Removing WearableMessageListener")
         Wearable.getMessageClient(context).removeListener(wearableMessageListener)
     }
 
     override fun onCleared() {
         super.onCleared()
-        serverManager.stop()
         if (isSessionActive) {
             sensorManager.stopCollecting()
         }

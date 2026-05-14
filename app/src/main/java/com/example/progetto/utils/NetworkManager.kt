@@ -24,6 +24,34 @@ class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl
         private const val TAG = "NetworkManager"
     }
 
+    suspend fun createTrainingSession(userId: UUID, songId: UUID): Result<UUID> = withContext(Dispatchers.IO) {
+        try {
+            val json = JSONObject().apply {
+                put("user_id", userId.toString())
+                put("song_id", songId.toString())
+            }
+
+            val request = Request.Builder()
+                .url("$baseUrl/api/training/sessions")
+                .post(json.toString().toRequestBody(mediaType))
+                .build()
+
+            val response = client.newCall(request).execute()
+            val body = response.body?.string() ?: ""
+
+            if (response.isSuccessful) {
+                val sessionId = JSONObject(body).getString("session_id")
+                Result.success(UUID.fromString(sessionId))
+            } else {
+                Log.e(TAG, "Create session failed: ${response.code} - $body")
+                Result.failure(Exception("HTTP ${response.code}: $body"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error creating training session", e)
+            Result.failure(e)
+        }
+    }
+
     /**
      * Fetch Insights Data for the Donut Chart
      */
@@ -89,16 +117,16 @@ class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl
         eegBuffer: List<SensorReading>
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
-            // Group EEG data by channel
-            val channelData = mutableMapOf<Int, MutableList<Float>>()
-            var sampleCount = 0
-
+            val grouped = mutableMapOf<Long, FloatArray>()
             for (reading in eegBuffer) {
                 if (reading.type != "eeg") continue
-                val channel = reading.channel
-                channelData.getOrPut(channel) { mutableListOf() }.add(reading.value)
-                sampleCount++
+                val frame = grouped.getOrPut(reading.timestamp) { FloatArray(6) }
+                if (reading.channel in 0..5) {
+                    frame[reading.channel] = reading.value
+                }
             }
+
+            val sortedFrames = grouped.toSortedMap()
 
             // Build JSON payload
             val json = JSONObject().apply {
@@ -106,16 +134,19 @@ class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl
                 put("subject", subject)
                 put("rating", rating)
                 put("samples", JSONArray().apply {
-                    for (i in 0 until sampleCount) {
+                    var sampleIndex = 0
+                    for ((_, values) in sortedFrames) {
                         val sample = JSONObject().apply {
-                            put("sample", i)
-                            for ((channel, values) in channelData) {
-                                if (i < values.size) {
-                                    put("ch${channel + 1}", values[i])
-                                }
-                            }
+                            put("sample", sampleIndex)
+                            put("ch1", values.getOrNull(0) ?: 0f)
+                            put("ch2", values.getOrNull(1) ?: 0f)
+                            put("ch3", values.getOrNull(2) ?: 0f)
+                            put("ch4", values.getOrNull(3) ?: 0f)
+                            put("ch5", values.getOrNull(4) ?: 0f)
+                            put("ch6", values.getOrNull(5) ?: 0f)
                         }
                         put(sample)
+                        sampleIndex += 1
                     }
                 })
             }
@@ -142,19 +173,20 @@ class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl
     }
 
     /**
-     * Send wearable sensor data (HR or EDA) to backend
+     * Send wearable sensor data (HR) to backend
      */
     suspend fun sendWearableData(
         sessionId: UUID,
-        sensorType: String,  // "hr" or "eda"
+        sensorType: String,  // "hr"
         subject: String,
         rating: Int,
         sensorBuffer: List<SensorReading>
     ): Result<String> = withContext(Dispatchers.IO) {
         try {
+            val resampled = resampleWearable(sensorBuffer, targetHz = 4.0)
             // Build samples array
             val samplesArray = JSONArray().apply {
-                for (reading in sensorBuffer) {
+                for (reading in resampled) {
                     val sample = JSONObject().apply {
                         put("timestamp", reading.timestamp)
                         put("value", reading.value.toDouble())
@@ -191,6 +223,51 @@ class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl
             Log.e(TAG, "Error sending $sensorType data", e)
             Result.failure(e)
         }
+    }
+
+    private fun resampleWearable(
+        samples: List<SensorReading>,
+        targetHz: Double
+    ): List<SensorReading> {
+        if (samples.isEmpty()) return samples
+        if (samples.size == 1) return samples
+
+        val sorted = samples.sortedBy { it.timestamp }
+        val start = sorted.first().timestamp
+        val end = sorted.last().timestamp
+        if (end <= start) return samples
+
+        val stepMs = (1000.0 / targetHz).toLong().coerceAtLeast(1L)
+        val output = ArrayList<SensorReading>()
+
+        var idx = 0
+        var t = start
+        while (t <= end) {
+            while (idx < sorted.size - 2 && sorted[idx + 1].timestamp <= t) {
+                idx += 1
+            }
+
+            val left = sorted[idx]
+            val right = sorted[(idx + 1).coerceAtMost(sorted.size - 1)]
+            val value = if (right.timestamp == left.timestamp) {
+                left.value
+            } else {
+                val ratio = (t - left.timestamp).toDouble() / (right.timestamp - left.timestamp).toDouble()
+                (left.value + (right.value - left.value) * ratio).toFloat()
+            }
+
+            output.add(
+                SensorReading(
+                    timestamp = t,
+                    type = left.type,
+                    value = value,
+                    channel = left.channel
+                )
+            )
+            t += stepMs
+        }
+
+        return output
     }
     /**
      * Toggle a song as a favorite (Like / Unlike)

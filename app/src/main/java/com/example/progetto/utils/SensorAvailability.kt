@@ -12,20 +12,19 @@ import android.util.Log
 
 object SensorAvailability {
     private const val TAG = "SensorCheck"
-    private const val SENSOR_TYPE_EDA = 28
 
     fun hasEmotionSensors(context: Context): Boolean {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
             ?: return false
 
         val heartRateAvailable = hasSensor(sensorManager, Sensor.TYPE_HEART_RATE)
-        val edaAvailable = hasSensor(sensorManager, SENSOR_TYPE_EDA)
         val bluetoothConnected = hasConnectedBluetoothDevice(context)
-        val available = heartRateAvailable || edaAvailable || bluetoothConnected
+        val eegAvailable = hasEegSignal()
+        val available = heartRateAvailable || bluetoothConnected || eegAvailable
 
         Log.d(
             TAG,
-            "heartRate=$heartRateAvailable eda=$edaAvailable bluetoothConnected=$bluetoothConnected available=$available"
+            "heartRate=$heartRateAvailable bluetoothConnected=$bluetoothConnected eeg=$eegAvailable available=$available"
         )
         return available
     }
@@ -35,13 +34,12 @@ object SensorAvailability {
             ?: return false
 
         val heartRateAvailable = hasSensor(sensorManager, Sensor.TYPE_HEART_RATE)
-        val edaAvailable = hasSensor(sensorManager, SENSOR_TYPE_EDA)
         val bluetoothConnected = hasConnectedBluetoothDevice(context)
-        val available = heartRateAvailable || edaAvailable || bluetoothConnected
+        val available = heartRateAvailable || bluetoothConnected
 
         Log.d(
             TAG,
-            "[strict] heartRate=$heartRateAvailable eda=$edaAvailable bluetoothConnected=$bluetoothConnected available=$available"
+            "[strict] heartRate=$heartRateAvailable bluetoothConnected=$bluetoothConnected available=$available"
         )
         return available
     }

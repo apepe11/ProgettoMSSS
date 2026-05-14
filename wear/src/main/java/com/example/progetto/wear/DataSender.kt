@@ -15,12 +15,10 @@ object DataSender {
 
     fun sendSensorData(
         context: Context,
-        heartRates: List<WearableSample>,
-        edaValues: List<WearableSample>
+        heartRates: List<WearableSample>
     ) {
         val payload = JSONObject()
             .put("heart_rate", heartRates.toJsonArray())
-            .put("eda", edaValues.toJsonArray())
 
         sendMessage(context, "/sensor_series", payload)
     }

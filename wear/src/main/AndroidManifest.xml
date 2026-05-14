@@ -42,6 +42,12 @@
             android:foregroundServiceType="health" />
 
         <service
+            android:name=".SensorService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="health" />
+
+        <service
             android:name=".SamplingMessageService"
             android:enabled="true"
             android:exported="true">

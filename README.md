@@ -3,7 +3,7 @@
 **HeartMusic** is an Android application that merges the world of music with physical and emotional well-being. The project aims to monitor the user's emotional state through biometric parameters detected by a smartwatch and EEG device. The goal is offer a personalized listening experience to positively influence mood.
 
 ## 🚀 The Idea
-Music has a profound impact on our emotions. HeartMusic aims to create a "bridge" between the heartbeat and music playlists. By analyzing biometric data (BPM and EDA), the app can:
+Music has a profound impact on our emotions. HeartMusic aims to create a "bridge" between the heartbeat and music playlists. By analyzing biometric data (BPM), the app can:
 1.  **Analyze** the user's current emotional state.
 2.  **Suggest** targeted playlists to improve mood or accompany a moment of relaxation.
 3.  **Monitor** emotional trends over time through personalized charts and insights.
@@ -119,7 +119,7 @@ adb logcat | grep "ListeningVM\|EmotionAnalysisVM\|SensorManager\|SensorCollecti
 
 ### Wear OS Companion App
 
-HeartMusic includes a Wear OS companion module (`:wear`) used to collect heart rate and EDA samples from the smartwatch. The phone app sends `/start_sampling`; the watch app responds with `/sensor_series`.
+HeartMusic includes a Wear OS companion module (`:wear`) used to collect heart rate samples from the smartwatch. The phone app sends `/start_sampling`; the watch app responds with `/sensor_series`.
 
 Build the Wear OS APK:
 ```bash
@@ -223,7 +223,7 @@ If Emotion Analysis does not appear:
 2. Confirm the wearable/EEG data source is actually connected.
 3. Remember that the app can only react to real collected signals, not only to the phone's internal sensors.
 
-If EEG samples work but HR/EDA stay at `0 samples`:
+If EEG samples work but HR stays at `0 samples`:
 1. Confirm the Wear APK is installed on the Pixel Watch, not on the phone.
 2. Open the Wear app once and grant `BODY_SENSORS`.
 3. Check phone logs for `Sent sampling request`.

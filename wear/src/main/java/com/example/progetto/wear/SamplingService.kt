@@ -10,8 +10,8 @@ import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class SamplingService : Service() {
@@ -33,7 +33,7 @@ class SamplingService : Service() {
             NOTIFICATION_ID,
             NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("HeartMusic")
-                .setContentText("Collecting HR and EDA")
+                .setContentText("Collecting heart rate")
                 .setSmallIcon(R.drawable.notify_icon)
                 .setOngoing(true)
                 .build()
@@ -44,16 +44,13 @@ class SamplingService : Service() {
         sensorRepository.startCollecting()
 
         samplingJob = serviceScope.launch {
-            val startedAt = System.currentTimeMillis()
-
-            while (isActive && System.currentTimeMillis() - startedAt < durationMs) {
-                delay(1_000L)
+            val deadline = System.currentTimeMillis() + durationMs
+            while (isActive && System.currentTimeMillis() < deadline) {
+                delay(SNAPSHOT_INTERVAL_MS)
                 sendCurrentSnapshot()
             }
-
             sensorRepository.stopCollecting()
             sendCurrentSnapshot()
-            sensorRepository.stopSensors()
             stopSelf()
         }
 
@@ -64,7 +61,9 @@ class SamplingService : Service() {
     override fun onDestroy() {
         samplingJob?.cancel()
         sensorRepository.stopCollecting()
-        sensorRepository.stopSensors()
+        if (!SensorService.isRunning) {
+            sensorRepository.stopSensors()
+        }
         Log.d(TAG, "Sampling service destroyed")
         super.onDestroy()
     }
@@ -72,9 +71,9 @@ class SamplingService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     private fun sendCurrentSnapshot() {
-        val (heartRates, edaValues) = sensorRepository.snapshot()
-        Log.d(TAG, "Sending snapshot: hr=${heartRates.size} eda=${edaValues.size}")
-        DataSender.sendSensorData(this, heartRates, edaValues)
+        val heartRates = sensorRepository.drainSnapshotWithFallback()
+        Log.d(TAG, "Sending snapshot: hr=${heartRates.size}")
+        DataSender.sendSensorData(this, heartRates)
     }
 
     private fun createNotificationChannel() {
@@ -91,5 +90,6 @@ class SamplingService : Service() {
         private const val TAG = "SamplingService"
         private const val CHANNEL_ID = "heartmusic_sampling"
         private const val NOTIFICATION_ID = 20
+        private const val SNAPSHOT_INTERVAL_MS = 1_000L
     }
 }
