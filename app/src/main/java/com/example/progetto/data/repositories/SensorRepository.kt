@@ -15,7 +15,7 @@ class SensorRepository {
         subject: String,
         rating: Int,
         sensorBuffer: List<SensorReading>
-    ): Result<Unit> {
+    ): Result<String> {
         return networkManager.sendWearableData(sessionId, sensorType, subject, rating, sensorBuffer)
     }
 
@@ -23,8 +23,8 @@ class SensorRepository {
         sessionId: UUID,
         subject: String,
         rating: Int,
-        eegBuffer: List<EegSample>
-    ): Result<Unit> {
+        eegBuffer: List<SensorReading>
+    ): Result<String> {
         return networkManager.sendEegData(sessionId, subject, rating, eegBuffer)
     }
 }

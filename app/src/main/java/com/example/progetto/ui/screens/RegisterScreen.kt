@@ -27,6 +27,7 @@ import com.example.progetto.ui.viewmodels.LoginUiState
 
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import com.example.progetto.R
 
 @Composable
 fun RegisterScreen(

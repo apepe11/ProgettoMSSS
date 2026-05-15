@@ -11,13 +11,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 import java.util.Locale
-
-import androidx.compose.ui.res.stringResource
-
-import androidx.compose.ui.res.stringResource
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.progetto.R
 
@@ -150,15 +147,17 @@ fun MusicPlayerScreen(
                 ) {
                     val currentTime = formatTime(currentPosition)
                     val totalTime = formatTime(duration)
+                    val currentPositionDescription = stringResource(R.string.player_current_position_description, currentTime)
+                    val totalDurationDescription = stringResource(R.string.player_total_duration_description, totalTime)
                     Text(
                         text = currentTime, 
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.semantics { contentDescription = stringResource(R.string.player_current_position_description, currentTime) }
+                        modifier = Modifier.semantics { contentDescription = currentPositionDescription }
                     )
                     Text(
                         text = totalTime, 
                         style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.semantics { contentDescription = stringResource(R.string.player_total_duration_description, totalTime) }
+                        modifier = Modifier.semantics { contentDescription = totalDurationDescription }
                     )
                 }
             }

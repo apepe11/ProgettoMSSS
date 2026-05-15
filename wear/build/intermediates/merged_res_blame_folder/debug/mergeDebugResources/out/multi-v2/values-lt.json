@@ -4,7 +4,7 @@
             "outputFile": "com.example.progetto.wear-mergeDebugResources-16:/values-lt/values-lt.xml",
             "map": [
                 {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/eb9ba2ecb2e717e0a869d28fa22d99d3/transformed/core-1.17.0/res/values-lt/values-lt.xml",
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/f35a8a38305b45e55378349f961cde85/transformed/core-1.17.0/res/values-lt/values-lt.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/1025b8265fcff1afa03a21a3d9605ac7/transformed/play-services-base-18.5.0/res/values-lt/values.xml",
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/77de91ee36fe02ecfa8793e7984b4cdf/transformed/play-services-base-18.5.0/res/values-lt/values.xml",
                     "from": {
                         "startLines": "4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
                         "startColumns": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
@@ -38,7 +38,7 @@
                     }
                 },
                 {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/116bfa9c013149dae39440e8157d6584/transformed/play-services-basement-18.4.0/res/values-lt/values.xml",
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/44ff8a4fd780fda324a5971d44f98acd/transformed/play-services-basement-18.4.0/res/values-lt/values.xml",
                     "from": {
                         "startLines": "4",
                         "startColumns": "0",

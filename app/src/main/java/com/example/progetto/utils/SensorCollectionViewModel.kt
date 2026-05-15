@@ -169,7 +169,7 @@ class SensorCollectionViewModel(
     }
 
     fun pauseListeningSession() {
-        if (!isSessionActive || currentSessionId == null || isSessionPaused) {
+        if (!isSessionActive || currentLuSessionId == null || isSessionPaused) {
             return
         }
 

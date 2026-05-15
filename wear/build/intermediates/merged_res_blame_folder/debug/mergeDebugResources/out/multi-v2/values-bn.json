@@ -4,7 +4,24 @@
             "outputFile": "com.example.progetto.wear-mergeDebugResources-16:/values-bn/values-bn.xml",
             "map": [
                 {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/eb9ba2ecb2e717e0a869d28fa22d99d3/transformed/core-1.17.0/res/values-bn/values-bn.xml",
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/44ff8a4fd780fda324a5971d44f98acd/transformed/play-services-basement-18.4.0/res/values-bn/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "195",
+                        "endColumns": "147",
+                        "endOffsets": "342"
+                    },
+                    "to": {
+                        "startLines": "17",
+                        "startColumns": "4",
+                        "startOffsets": "1765",
+                        "endColumns": "151",
+                        "endOffsets": "1912"
+                    }
+                },
+                {
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/f35a8a38305b45e55378349f961cde85/transformed/core-1.17.0/res/values-bn/values-bn.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -21,7 +38,7 @@
                     }
                 },
                 {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/1025b8265fcff1afa03a21a3d9605ac7/transformed/play-services-base-18.5.0/res/values-bn/values.xml",
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/77de91ee36fe02ecfa8793e7984b4cdf/transformed/play-services-base-18.5.0/res/values-bn/values.xml",
                     "from": {
                         "startLines": "4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
                         "startColumns": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
@@ -35,23 +52,6 @@
                         "startOffsets": "784,893,1052,1180,1291,1427,1549,1661,1917,2060,2169,2325,2453,2586,2734,2794,2861",
                         "endColumns": "108,158,127,110,135,121,111,103,142,108,155,127,132,147,59,66,89",
                         "endOffsets": "888,1047,1175,1286,1422,1544,1656,1760,2055,2164,2320,2448,2581,2729,2789,2856,2946"
-                    }
-                },
-                {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/116bfa9c013149dae39440e8157d6584/transformed/play-services-basement-18.4.0/res/values-bn/values.xml",
-                    "from": {
-                        "startLines": "4",
-                        "startColumns": "0",
-                        "startOffsets": "195",
-                        "endColumns": "147",
-                        "endOffsets": "342"
-                    },
-                    "to": {
-                        "startLines": "17",
-                        "startColumns": "4",
-                        "startOffsets": "1765",
-                        "endColumns": "151",
-                        "endOffsets": "1912"
                     }
                 }
             ]

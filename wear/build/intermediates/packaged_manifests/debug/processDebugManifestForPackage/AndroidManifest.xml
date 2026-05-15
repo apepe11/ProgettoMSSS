@@ -32,7 +32,6 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/ic_wear_launcher"
         android:supportsRtl="true"
-        android:testOnly="true"
         android:theme="@style/Theme.HeartMusicWear" >
         <uses-library
             android:name="com.google.android.wearable"
@@ -54,6 +53,11 @@
 
         <service
             android:name="com.example.progetto.wear.SamplingService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="health" />
+        <service
+            android:name="com.example.progetto.wear.SensorService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="health" />

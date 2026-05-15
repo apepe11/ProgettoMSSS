@@ -6,6 +6,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.progetto.data.SongReviewRequest
+import com.example.progetto.data.SongReviewResponse
 import com.example.progetto.data.repositories.AuthRepository
 import com.example.progetto.utils.UiText
 import com.example.progetto.R

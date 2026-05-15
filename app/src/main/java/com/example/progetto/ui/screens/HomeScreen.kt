@@ -16,6 +16,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.progetto.R
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.utils.SensorAvailability
 import kotlinx.coroutines.delay

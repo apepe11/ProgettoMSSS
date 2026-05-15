@@ -395,7 +395,9 @@ fun AppNavigation(
             )
         }
         composable("insights") {
+            val currentUserId = authViewModel.currentUser?.userId ?: ""
             InsightsScreen(
+                currentUserId = currentUserId,
                 onOpenDrawer = onOpenDrawer
             )
         }

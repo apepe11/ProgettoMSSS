@@ -22,7 +22,7 @@ class AuthRepository {
         return authApi.getReviews(userId)
     }
 
-    suspend fun saveReview(request: SongReviewRequest): Response<SongReviewResponse> {
+    suspend fun saveReview(request: SongReviewRequest): Response<Unit> {
         return authApi.saveReview(request)
     }
 }

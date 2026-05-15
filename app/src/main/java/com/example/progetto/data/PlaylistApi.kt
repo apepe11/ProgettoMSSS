@@ -1,5 +1,6 @@
 package com.example.progetto.data
 
+import com.example.progetto.utils.InsightsResponse
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -33,5 +34,15 @@ interface PlaylistApi {
     suspend fun checkFavorite(
         @Path("song_id") songId: String,
         @Path("user_id") userId: String
-    ): Response<Map<String, Any>>
+    ): Response<Map<String, Boolean>>
+
+    @GET("/api/favorites/{user_id}")
+    suspend fun getFavoriteSongs(
+        @Path("user_id") userId: String
+    ): Response<List<FavoriteSongResponse>>
+
+    @GET("/api/insights/{user_id}")
+    suspend fun getInsights(
+        @Path("user_id") userId: String
+    ): Response<InsightsResponse>
 }

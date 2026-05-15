@@ -4,24 +4,7 @@
             "outputFile": "com.example.progetto.wear-mergeDebugResources-16:/values-gl/values-gl.xml",
             "map": [
                 {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/116bfa9c013149dae39440e8157d6584/transformed/play-services-basement-18.4.0/res/values-gl/values.xml",
-                    "from": {
-                        "startLines": "4",
-                        "startColumns": "0",
-                        "startOffsets": "195",
-                        "endColumns": "129",
-                        "endOffsets": "324"
-                    },
-                    "to": {
-                        "startLines": "17",
-                        "startColumns": "4",
-                        "startOffsets": "1808",
-                        "endColumns": "133",
-                        "endOffsets": "1937"
-                    }
-                },
-                {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/eb9ba2ecb2e717e0a869d28fa22d99d3/transformed/core-1.17.0/res/values-gl/values-gl.xml",
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/f35a8a38305b45e55378349f961cde85/transformed/core-1.17.0/res/values-gl/values-gl.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -38,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "/home/elahe/.gradle/caches/8.13/transforms/1025b8265fcff1afa03a21a3d9605ac7/transformed/play-services-base-18.5.0/res/values-gl/values.xml",
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/77de91ee36fe02ecfa8793e7984b4cdf/transformed/play-services-base-18.5.0/res/values-gl/values.xml",
                     "from": {
                         "startLines": "4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
                         "startColumns": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
@@ -52,6 +35,23 @@
                         "startOffsets": "783,889,1052,1181,1289,1448,1580,1699,1942,2113,2222,2391,2526,2691,2843,2910,2979",
                         "endColumns": "105,162,128,107,158,131,118,108,170,108,168,134,164,151,66,68,84",
                         "endOffsets": "884,1047,1176,1284,1443,1575,1694,1803,2108,2217,2386,2521,2686,2838,2905,2974,3059"
+                    }
+                },
+                {
+                    "source": "/home/luca/.gradle/caches/8.13/transforms/44ff8a4fd780fda324a5971d44f98acd/transformed/play-services-basement-18.4.0/res/values-gl/values.xml",
+                    "from": {
+                        "startLines": "4",
+                        "startColumns": "0",
+                        "startOffsets": "195",
+                        "endColumns": "129",
+                        "endOffsets": "324"
+                    },
+                    "to": {
+                        "startLines": "17",
+                        "startColumns": "4",
+                        "startOffsets": "1808",
+                        "endColumns": "133",
+                        "endOffsets": "1937"
                     }
                 }
             ]

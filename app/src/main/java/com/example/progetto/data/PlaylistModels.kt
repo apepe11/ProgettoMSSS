@@ -19,6 +19,14 @@ data class SongSearchResponse(
     val songs: List<SongResponse>
 )
 
+data class FavoriteSongResponse(
+    val songId: String,
+    val title: String,
+    val artist: String,
+    val url: String,
+    val likes: Int? = 0
+)
+
 data class SongResponse(
     @SerializedName("song_id") val songId: String,
     val title: String,

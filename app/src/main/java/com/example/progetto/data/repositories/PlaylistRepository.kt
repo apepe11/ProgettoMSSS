@@ -9,7 +9,7 @@ import retrofit2.Response
 class PlaylistRepository {
     private val playlistApi = RetrofitClient.playlistApiService
 
-    suspend fun getPlaylists(query: String = ""): Response<PlaylistResponse> {
+    suspend fun getPlaylists(query: String = ""): Response<PlaylistSearchResponse> {
         return playlistApi.getPlaylists(query)
     }
 
@@ -17,11 +17,11 @@ class PlaylistRepository {
         return playlistApi.getPlaylistDetails(playlistId)
     }
 
-    suspend fun getSongs(query: String = ""): Response<SongsResponse> {
+    suspend fun getSongs(query: String = ""): Response<SongSearchResponse> {
         return playlistApi.getSongs(query)
     }
 
-    suspend fun getTopSongs(): Response<SongsResponse> {
+    suspend fun getTopSongs(): Response<SongSearchResponse> {
         return playlistApi.getTopSongs()
     }
 
@@ -29,7 +29,7 @@ class PlaylistRepository {
         return playlistApi.toggleFavorite(songId, body)
     }
 
-    suspend fun getFavoriteSongs(userId: String): Response<List<SongItem>> {
+    suspend fun getFavoriteSongs(userId: String): Response<List<FavoriteSongResponse>> {
         return playlistApi.getFavoriteSongs(userId)
     }
     
