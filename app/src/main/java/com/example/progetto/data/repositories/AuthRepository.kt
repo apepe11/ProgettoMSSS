@@ -18,6 +18,10 @@ class AuthRepository {
         return authApi.register(request)
     }
 
+    suspend fun forgotPassword(email: String): Response<Map<String, String>> {
+        return authApi.forgotPassword(mapOf("email" to email))
+    }
+
     suspend fun getReviews(userId: String): Response<UserReviewsResponse> {
         return authApi.getReviews(userId)
     }

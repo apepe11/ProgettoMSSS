@@ -22,6 +22,13 @@ sealed class LoginUiState {
     data class Error(val message: UiText) : LoginUiState()
 }
 
+sealed class ForgotPasswordUiState {
+    object Idle : ForgotPasswordUiState()
+    object Loading : ForgotPasswordUiState()
+    data class Success(val message: String) : ForgotPasswordUiState()
+    data class Error(val message: UiText) : ForgotPasswordUiState()
+}
+
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val userPreferences = UserPreferences(application)
     private val authRepository = AuthRepository()
@@ -29,6 +36,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     // Questo è lo stato che la UI osserverà per il login/reg
     var uiState by mutableStateOf<LoginUiState>(LoginUiState.Idle)
+        private set
+
+    var forgotPasswordState by mutableStateOf<ForgotPasswordUiState>(ForgotPasswordUiState.Idle)
         private set
 
     // Memorizziamo i dati dell'utente loggato
@@ -86,6 +96,28 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
             } catch (e: Exception) {
                 uiState = LoginUiState.Error(UiText.StringResource(R.string.error_network, e.localizedMessage ?: ""))
+            }
+        }
+    }
+
+    fun forgotPassword(email: String) {
+        viewModelScope.launch {
+            forgotPasswordState = ForgotPasswordUiState.Loading
+            try {
+                val response = authRepository.forgotPassword(email.trim())
+                if (response.isSuccessful && response.body() != null) {
+                    val message = response.body()!!["message"] ?: "Instructions sent"
+                    forgotPasswordState = ForgotPasswordUiState.Success(message)
+                } else {
+                    val errorMsg = if (response.code() == 404) {
+                        UiText.StringResource(R.string.error_user_not_found)
+                    } else {
+                        UiText.StringResource(R.string.error_unknown)
+                    }
+                    forgotPasswordState = ForgotPasswordUiState.Error(errorMsg)
+                }
+            } catch (e: Exception) {
+                forgotPasswordState = ForgotPasswordUiState.Error(UiText.StringResource(R.string.error_network, e.localizedMessage ?: ""))
             }
         }
     }

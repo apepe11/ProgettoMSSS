@@ -18,6 +18,11 @@ interface AuthApi {
         @Body request: RegisterRequest
     ): Response<LoginResponse>
 
+    @POST("/api/users/forgot-password")
+    suspend fun forgotPassword(
+        @Body request: Map<String, String>
+    ): Response<Map<String, String>>
+
     @POST("/api/reviews")
     suspend fun saveReview(
         @Body request: SongReviewRequest

@@ -20,20 +20,34 @@ from models import (
     UserFavorite
 )
 
+import mailtrap as mt
+
 # Create a 'Blueprint' to hold all our URLs
 api = Blueprint('api', __name__)
 
+def send_mailtrap_email(to_email, subject, body, category="Notification"):
+    token = os.getenv("MAILTRAP_TOKEN")
+    sender_email = os.getenv("MAIL_SENDER_EMAIL", "hello@demomailtrap.co")
+    sender_name = os.getenv("MAIL_SENDER_NAME", "HeartMusic Support")
 
+    if not token:
+        print("Error: MAILTRAP_TOKEN not set in environment")
+        return False
 
-def send_welcome_email(user_email, username):
-    from app import mail # Import circolare gestito dentro la funzione
-    msg = Message('Welcome to HeartMusic!',
-                  recipients=[user_email])
-    msg.body = f"Hi {username}! Thank you for registering to HeartMusic. Start listening to your heart!"
+    client = mt.MailtrapClient(token=token)
+    mail = mt.Mail(
+        sender=mt.Address(email=sender_email, name=sender_name),
+        to=[mt.Address(email=to_email)],
+        subject=subject,
+        text=body,
+        category=category,
+    )
     try:
-        mail.send(msg)
+        client.send(mail)
+        return True
     except Exception as e:
-        print(f"Error sending email: {e}")
+        print(f"Mailtrap Error: {e}")
+        return False
 
 # ==========================================
 # 0. USER AUTHENTICATION
@@ -59,8 +73,13 @@ def register_user():
     db.session.add(new_user)
     db.session.commit()
 
-    # No email confirmation needed as per user request
-    # send_welcome_email(new_user.email, new_user.username)
+    # Welcome Email via Mailtrap
+    send_mailtrap_email(
+        to_email=new_user.email,
+        subject="Welcome to HeartMusic!",
+        body=f"Hi {new_user.username}! Thank you for registering to HeartMusic. Start listening to your heart!",
+        category="Registration"
+    )
 
     return jsonify({"message": "User created successfully!", "user_id": new_user.user_id}), 201
 
@@ -81,6 +100,27 @@ def login_user():
         }), 200
         
     return jsonify({"error": "Invalid email or password"}), 401
+
+@api.route('/api/users/forgot-password', methods=['POST'], strict_slashes=False)
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User with this email not found"}), 404
+
+    success = send_mailtrap_email(
+        to_email=email,
+        subject="HeartMusic Password Reset",
+        body=f"Hi {user.username}! You requested a password reset. Please use the following link to reset it: http://heartmusic.app/reset-password?token=mock_token_123",
+        category="Password Reset"
+    )
+
+    if success:
+        return jsonify({"message": "Reset instructions sent to your email"}), 200
+    else:
+        return jsonify({"error": "Failed to send email via Mailtrap"}), 500
 
 # ==========================================
 # 1. RECEIVE SMARTWATCH DATA (BPM & EDA)

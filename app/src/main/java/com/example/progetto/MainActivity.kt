@@ -351,7 +351,8 @@ fun AppNavigation(
         }
         composable("forgot_password") {
             ForgotPasswordScreen(
-                onNavigateBack = { navController.popBackStack() }
+                onNavigateBack = { navController.popBackStack() },
+                viewModel = authViewModel
             )
         }
         composable("home") {
