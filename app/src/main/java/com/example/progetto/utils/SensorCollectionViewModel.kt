@@ -169,7 +169,7 @@ class SensorCollectionViewModel(
     }
 
     fun pauseListeningSession() {
-        if (!isSessionActive || currentLuSessionId == null || isSessionPaused) {
+        if (!isSessionActive || currentSessionId == null || isSessionPaused) {
             return
         }
 
@@ -307,98 +307,55 @@ class SensorCollectionViewModel(
         signalSnapshotJob?.cancel()
         signalSnapshotJob = viewModelScope.launch {
             while (isSessionActive) {
+                delay(1000)
                 updateSignalSnapshot()
-                delay(500)
             }
         }
     }
 
     private fun stopSignalSnapshotUpdates() {
         signalSnapshotJob?.cancel()
+        signalSnapshotJob = null
         updateSignalSnapshot(isCollecting = false)
     }
 
-    private fun updateSignalSnapshot(isCollecting: Boolean = isSessionActive && !isSessionPaused) {
-        val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
-        val eegData = sensorManager.getEegBuffer()
-
+    private fun updateSignalSnapshot(isCollecting: Boolean = true) {
+        val hr = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
+        val eeg = sensorManager.getEegBuffer()
+        
         _signalSnapshot.value = LiveSignalSnapshot(
-            isCollecting = isCollecting,
-            heartRateSamples = hrData.size,
-            eegSamples = eegFrameCount,
-            latestHeartRate = hrData.lastOrNull()?.value,
-            latestEeg = eegData.lastOrNull()?.value
+            isCollecting = isCollecting && isSessionActive && !isSessionPaused,
+            heartRateSamples = hr.size,
+            eegSamples = eeg.size,
+            latestHeartRate = hr.lastOrNull()?.value,
+            latestEeg = eeg.lastOrNull()?.value
         )
     }
 
     private fun startWearableMessageCollection() {
-        Log.d(TAG, "Registering WearableMessageListener")
         Wearable.getMessageClient(context).addListener(wearableMessageListener)
-
-        wearableHeartRateJob?.cancel()
-        wearableHeartRateJob = viewModelScope.launch {
-            WearableMessageListener.heartRateFlow.collect { heartRates ->
-                Log.d(TAG, "Wearable HR packet received: ${heartRates.size} samples")
-                if (!isSessionActive || isSessionPaused) {
-                    return@collect
-                }
-                if (heartRates.isNotEmpty()) {
-                    appendWearableSamples(
-                        source = heartRates,
-                        buffer = wearableHeartRateBuffer,
-                        type = "hr",
-                        maxSize = WEARABLE_MAX_SAMPLES
-                    ) { lastWearableHrTimestamp = it }
-                    updateSignalSnapshot()
-                }
-            }
-        }
-    }
-
-    private fun appendWearableSamples(
-        source: List<WearableData>,
-        buffer: MutableList<SensorReading>,
-        type: String,
-        maxSize: Int,
-        updateLastTimestamp: (Long) -> Unit
-    ) {
-        val lastTimestamp = when (type) {
-            "hr" -> lastWearableHrTimestamp
-            else -> 0L
-        }
-
-        val newSamples = source
-            .filter { it.timestamp > lastTimestamp }
-            .map {
-                SensorReading(
-                    timestamp = it.timestamp,
-                    type = type,
-                    value = it.value
-                )
-            }
-
-        if (newSamples.isEmpty()) return
-
-        buffer.addAll(newSamples)
-        if (buffer.size > maxSize) {
-            val trimCount = buffer.size - maxSize
-            buffer.subList(0, trimCount).clear()
-        }
-        updateLastTimestamp(newSamples.last().timestamp)
     }
 
     private fun stopWearableMessageCollection() {
-        wearableHeartRateJob?.cancel()
-        Log.d(TAG, "Removing WearableMessageListener")
         Wearable.getMessageClient(context).removeListener(wearableMessageListener)
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        if (isSessionActive) {
-            sensorManager.stopCollecting()
+    inner class WearableMessageListener : com.google.android.gms.wearable.MessageClient.OnMessageReceivedListener {
+        override fun onMessageReceived(messageEvent: com.google.android.gms.wearable.MessageEvent) {
+            if (messageEvent.path == "/hr_data") {
+                val data = String(messageEvent.data).split(",")
+                if (data.size >= 2) {
+                    val value = data[0].toFloatOrNull() ?: return
+                    val timestamp = data[1].toLongOrNull() ?: System.currentTimeMillis()
+                    
+                    if (timestamp > lastWearableHrTimestamp) {
+                        lastWearableHrTimestamp = timestamp
+                        if (isSessionActive && !isSessionPaused && wearableHeartRateBuffer.size < WEARABLE_MAX_SAMPLES) {
+                            wearableHeartRateBuffer.add(SensorReading(timestamp, "hr", value))
+                        }
+                    }
+                }
+            }
         }
-        stopWearableMessageCollection()
-        signalSnapshotJob?.cancel()
     }
 }

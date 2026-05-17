@@ -19,12 +19,12 @@ def serve_music(filename):
     return send_from_directory(music_dir, actual_filename)
 
 # Configurazione Mail (Esempio per Gmail)
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
+app.config['MAIL_SERVER'] = 'sandbox.smtp.mailtrap.io'
+app.config['MAIL_PORT'] = 2525
 app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'la-tua-mail@gmail.com' # Sostituisci con la tua mail
-app.config['MAIL_PASSWORD'] = 'tua-app-password'     # Sostituisci con la password generata
-app.config['MAIL_DEFAULT_SENDER'] = 'la-tua-mail@gmail.com'
+app.config['MAIL_USERNAME'] = '898efbd798016d' # Sostituisci con la tua mail
+app.config['MAIL_PASSWORD'] = '4d01dc17f1607b'     # Sostituisci con la password generata
+app.config['MAIL_DEFAULT_SENDER'] = 'hello@demomailtrap.co'
 
 mail = Mail(app)
 

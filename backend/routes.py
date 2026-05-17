@@ -1,6 +1,7 @@
-from flask import Blueprint, request, jsonify, send_from_directory
+from flask import Blueprint, request, jsonify, send_from_directory, current_app
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
+import threading
 from pathlib import Path
 import csv
 import os
@@ -21,32 +22,37 @@ from models import (
 )
 
 import mailtrap as mt
+from flask_mail import Message
 
 # Create a 'Blueprint' to hold all our URLs
 api = Blueprint('api', __name__)
 
-def send_mailtrap_email(to_email, subject, body, category="Notification"):
-    token = os.getenv("MAILTRAP_TOKEN")
-    sender_email = os.getenv("MAIL_SENDER_EMAIL", "hello@demomailtrap.co")
-    sender_name = os.getenv("MAIL_SENDER_NAME", "HeartMusic Support")
+def send_async_email(app, msg):
+    """Funzione che invia la mail sullo sfondo"""
+    with app.app_context():
+        mail = app.extensions.get('mail')
+        try:
+            if mail:
+                mail.send(msg)
+                print("Email inviata con successo!")
+        except Exception as e:
+            print(f"Errore invio mail in background: {e}")
 
-    if not token:
-        print("Error: MAILTRAP_TOKEN not set in environment")
-        return False
-
-    client = mt.MailtrapClient(token=token)
-    mail = mt.Mail(
-        sender=mt.Address(email=sender_email, name=sender_name),
-        to=[mt.Address(email=to_email)],
-        subject=subject,
-        text=body,
-        category=category,
-    )
+def send_reset_email(to_email, subject, body, category="Notification"):
     try:
-        client.send(mail)
+        app = current_app._get_current_object()
+        msg = Message(
+            subject=subject,
+            recipients=[to_email],
+            body=body,
+            sender=current_app.config['MAIL_DEFAULT_SENDER']
+        )
+
+        #mail.send(msg)
+        threading.Thread(target=send_async_email, args=(app, msg)).start()
         return True
     except Exception as e:
-        print(f"Mailtrap Error: {e}")
+        print(f"Errore invio mail: {e}")
         return False
 
 # ==========================================
@@ -73,13 +79,13 @@ def register_user():
     db.session.add(new_user)
     db.session.commit()
 
-    # Welcome Email via Mailtrap
-    send_mailtrap_email(
-        to_email=new_user.email,
-        subject="Welcome to HeartMusic!",
-        body=f"Hi {new_user.username}! Thank you for registering to HeartMusic. Start listening to your heart!",
-        category="Registration"
+    # Welcome Email
+    send_reset_email(
+            to_email=new_user.email,
+            subject="Welcome to HeartMusic!",
+            body=f"Hi {new_user.username}! Thank you for registering to HeartMusic. Start listening to your heart!"
     )
+
 
     return jsonify({"message": "User created successfully!", "user_id": new_user.user_id}), 201
 
@@ -90,15 +96,15 @@ def login_user():
 
     # Cerca l'utente sia per email che per username
     user = User.query.filter((User.email == identifier) | (User.username == identifier)).first()
-    
+
     # If the user exists AND the encrypted passwords match
     if user and check_password_hash(user.password_hash, data.get('password')):
         return jsonify({
-            "message": "Login successful", 
-            "user_id": user.user_id, 
+            "message": "Login successful",
+            "user_id": user.user_id,
             "username": user.username
         }), 200
-        
+
     return jsonify({"error": "Invalid email or password"}), 401
 
 @api.route('/api/users/forgot-password', methods=['POST'], strict_slashes=False)
@@ -110,12 +116,11 @@ def forgot_password():
     if not user:
         return jsonify({"error": "User with this email not found"}), 404
 
-    success = send_mailtrap_email(
-        to_email=email,
-        subject="HeartMusic Password Reset",
-        body=f"Hi {user.username}! You requested a password reset. Please use the following link to reset it: http://heartmusic.app/reset-password?token=mock_token_123",
-        category="Password Reset"
-    )
+    success = send_reset_email(
+                      to_email=email,
+                      subject="HeartMusic Password Reset",
+                      body=f"Ciao {user.username}! Hai richiesto il reset della password."
+                  )
 
     if success:
         return jsonify({"message": "Reset instructions sent to your email"}), 200
@@ -128,17 +133,17 @@ def forgot_password():
 @api.route('/api/sessions', methods=['POST'])
 def save_watch_data():
     data = request.get_json()
-    
+
     new_session = ListeningSession(
         user_id=data.get('user_id'),
         song_id=data.get('song_id'),
         avg_bpm=data.get('avg_bpm'),
         avg_eda=data.get('avg_eda')
     )
-    
+
     db.session.add(new_session)
     db.session.commit()
-    
+
     return jsonify({
         "message": "Smartwatch data saved successfully!",
         "session_id": str(new_session.session_id)
@@ -151,32 +156,32 @@ def save_watch_data():
 def get_questions():
     # Grab all questions from the database
     questions = SurveyQuestion.query.all()
-    
+
     # Format them into a neat JSON list for the phone
     q_list = []
     for q in questions:
         q_list.append({
-            "question_id": q.question_id, 
-            "text": q.question_text, 
+            "question_id": q.question_id,
+            "text": q.question_text,
             "type": q.question_type
         })
-        
+
     return jsonify({"questions": q_list}), 200
 
 @api.route('/api/surveys', methods=['POST'])
 def save_survey():
     data = request.get_json()
-    
+
     new_survey = SurveyResponse(
         session_id=data.get('session_id'),
         user_id=data.get('user_id'),
         question_id=data.get('question_id'),
         answer_data=data.get('answer_data') # Expects JSON format
     )
-    
+
     db.session.add(new_survey)
     db.session.commit()
-    
+
     return jsonify({"message": "Survey response saved!"}), 201
 
 # ==========================================
@@ -347,7 +352,7 @@ def get_songs():
 def get_user_history(user_id):
     # Fetch sessions for this user, ordered by newest first
     sessions = ListeningSession.query.filter_by(user_id=user_id).order_by(ListeningSession.start_time.desc()).all()
-    
+
     session_list = []
     for s in sessions:
         session_list.append({
@@ -358,7 +363,7 @@ def get_user_history(user_id):
             "avg_bpm": float(s.avg_bpm) if s.avg_bpm else None,
             "avg_eda": float(s.avg_eda) if s.avg_eda else None
         })
-        
+
     return jsonify({"history": session_list}), 200
 
 
@@ -370,14 +375,14 @@ def get_user_history(user_id):
 def collect_heart_rate():
     """Receive heart rate data during live listening session"""
     data = request.get_json() or {}
-    
+
     session_id = data.get('session_id')
     timestamp = data.get('timestamp', int(__import__('time').time() * 1000))
     value = data.get('value')
-    
+
     if not session_id or value is None:
         return jsonify({"error": "session_id and value required"}), 400
-    
+
     try:
         wearable = WearableTrainingSample(
             session_id=session_id,
@@ -389,7 +394,7 @@ def collect_heart_rate():
         )
         db.session.add(wearable)
         db.session.commit()
-        
+
         return jsonify({
             "message": "Heart rate data received",
             "sample_id": wearable.sample_id
@@ -403,14 +408,14 @@ def collect_heart_rate():
 def collect_eda():
     """Receive EDA data during live listening session"""
     data = request.get_json() or {}
-    
+
     session_id = data.get('session_id')
     timestamp = data.get('timestamp', int(__import__('time').time() * 1000))
     value = data.get('value')
-    
+
     if not session_id or value is None:
         return jsonify({"error": "session_id and value required"}), 400
-    
+
     try:
         wearable = WearableTrainingSample(
             session_id=session_id,
@@ -422,7 +427,7 @@ def collect_eda():
         )
         db.session.add(wearable)
         db.session.commit()
-        
+
         return jsonify({
             "message": "EDA data received",
             "sample_id": wearable.sample_id
@@ -436,13 +441,13 @@ def collect_eda():
 def collect_eeg():
     """Receive EEG data during live listening session"""
     data = request.get_json() or {}
-    
+
     session_id = data.get('session_id')
     sample_num = data.get('sample')
-    
+
     if not session_id or sample_num is None:
         return jsonify({"error": "session_id and sample required"}), 400
-    
+
     try:
         eeg = EEGTrainingSample(
             session_id=session_id,
@@ -458,7 +463,7 @@ def collect_eeg():
         )
         db.session.add(eeg)
         db.session.commit()
-        
+
         return jsonify({
             "message": "EEG data received",
             "sample_id": eeg.sample_id
@@ -807,11 +812,11 @@ def get_insights(user_id):
             # Create a dictionary of counts, force lowercase keys
             counts = {name.lower(): count for name, count in rows}
             total = sum(counts.values())
-            
+
             # CRITICAL: Prevent division by zero
             if total == 0:
                 return {"happy": 0, "sad": 0, "calm": 0, "anxious": 0, "energetic": 0}
-            
+
             return {
                 "happy": counts.get("happy", 0) / total,
                 "sad": counts.get("sad", 0) / total,
@@ -830,7 +835,7 @@ def get_insights(user_id):
         print(f"❌ BACKEND ERROR: {str(e)}")
         return jsonify({"error": str(e)}), 500
     # ^^^ ADDED THE FILTER ABOVE ^^^
-    
+
     # ... (Keep the rest of your percentage math the same) ...
 
 # Helper function to turn raw counts into 0.0 - 1.0 percentages
@@ -838,10 +843,10 @@ def calculate_percentages(counts_list):
     total = sum([count for name, count in counts_list])
     if total == 0:
         return {"happy": 0, "sad": 0, "calm": 0, "anxious": 0, "energetic": 0}
-    
+
     # Create a dictionary of percentages
     stats = {name.lower(): (count / total) for name, count in counts_list}
-    return stats   
+    return stats
 
 
 @api.route('/api/songs/top', methods=['GET'])
@@ -908,15 +913,15 @@ def get_user_favorites(user_id):
     try:
         # Join the songs table with the user_favorites table to get full song details
         query = text("""
-            SELECT s.song_id, s.title, s.artist, s.file_url 
+            SELECT s.song_id, s.title, s.artist, s.file_url
             FROM songs s
             JOIN user_favorites uf ON s.song_id = uf.song_id
             WHERE uf.user_id = :u_id
             ORDER BY uf.created_at DESC
         """)
-        
+
         results = db.session.execute(query, {"u_id": user_id}).fetchall()
-        
+
         # Format the data into a JSON list
         favorite_songs = []
         for row in results:
@@ -927,7 +932,7 @@ def get_user_favorites(user_id):
                 "url": row.file_url,
                 "likes": 1 # You can update this later if you want total global likes
             })
-            
+
         return jsonify(favorite_songs), 200
 
     except Exception as e:
