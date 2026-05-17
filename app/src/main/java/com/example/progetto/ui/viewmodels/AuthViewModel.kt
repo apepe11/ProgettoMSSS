@@ -29,6 +29,13 @@ sealed class ForgotPasswordUiState {
     data class Error(val message: UiText) : ForgotPasswordUiState()
 }
 
+sealed class ResetPasswordUiState {
+    object Idle : ResetPasswordUiState()
+    object Loading : ResetPasswordUiState()
+    object Success : ResetPasswordUiState()
+    data class Error(val message: UiText) : ResetPasswordUiState()
+}
+
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val userPreferences = UserPreferences(application)
     private val authRepository = AuthRepository()
@@ -39,6 +46,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     var forgotPasswordState by mutableStateOf<ForgotPasswordUiState>(ForgotPasswordUiState.Idle)
+        private set
+
+    var resetPasswordState by mutableStateOf<ResetPasswordUiState>(ResetPasswordUiState.Idle)
         private set
 
     // Memorizziamo i dati dell'utente loggato
@@ -122,6 +132,22 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun resetPassword(email: String, newPassword: String) {
+        viewModelScope.launch {
+            resetPasswordState = ResetPasswordUiState.Loading
+            try {
+                val response = authRepository.resetPassword(email.trim(), newPassword)
+                if (response.isSuccessful) {
+                    resetPasswordState = ResetPasswordUiState.Success
+                } else {
+                    resetPasswordState = ResetPasswordUiState.Error(UiText.StringResource(R.string.error_unknown))
+                }
+            } catch (e: Exception) {
+                resetPasswordState = ResetPasswordUiState.Error(UiText.StringResource(R.string.error_network, e.localizedMessage ?: ""))
+            }
+        }
+    }
+
     fun logout() {
         viewModelScope.launch {
             userPreferences.clear()
@@ -132,5 +158,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun resetState() {
         uiState = LoginUiState.Idle
+        forgotPasswordState = ForgotPasswordUiState.Idle
+        resetPasswordState = ResetPasswordUiState.Idle
     }
 }

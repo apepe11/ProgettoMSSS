@@ -23,6 +23,11 @@ interface AuthApi {
         @Body request: Map<String, String>
     ): Response<Map<String, String>>
 
+    @POST("/api/users/reset-password")
+    suspend fun resetPassword(
+        @Body request: Map<String, String>
+    ): Response<Map<String, String>>
+
     @POST("/api/reviews")
     suspend fun saveReview(
         @Body request: SongReviewRequest

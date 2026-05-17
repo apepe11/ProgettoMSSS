@@ -352,6 +352,24 @@ fun AppNavigation(
         composable("forgot_password") {
             ForgotPasswordScreen(
                 onNavigateBack = { navController.popBackStack() },
+                onNavigateToResetPassword = { email -> navController.navigate("reset_password/$email")},
+                viewModel = authViewModel
+            )
+        }
+        composable(
+            route = "reset_password/{email}",
+            arguments = listOf(navArgument("email") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val email = backStackEntry.arguments?.getString("email") ?: ""
+            ResetPasswordScreen(
+                email = email,
+                onNavigateToLogin = {
+                    // Dopo il reset, torniamo al login pulendo lo storico
+                    navController.navigate("login") {
+                        popUpTo("welcome") { inclusive = false }
+                    }
+                },
+                onNavigateBack = { navController.popBackStack() },
                 viewModel = authViewModel
             )
         }

@@ -10,30 +10,29 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.progetto.R
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.components.HeartTextField
-
-import androidx.compose.ui.res.stringResource
-import com.example.progetto.R
-
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.viewmodels.AuthViewModel
-import com.example.progetto.ui.viewmodels.ForgotPasswordUiState
+import com.example.progetto.ui.viewmodels.ResetPasswordUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ForgotPasswordScreen(
-    onNavigateBack: () -> Unit = {},
-    onNavigateToResetPassword: (String) -> Unit = {},
+fun ResetPasswordScreen(
+    email: String,
+    onNavigateToLogin: () -> Unit,
+    onNavigateBack: () -> Unit,
     viewModel: AuthViewModel = viewModel()
 ) {
-    var email by remember { mutableStateOf("") }
-    val uiState = viewModel.forgotPasswordState
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    val uiState = viewModel.resetPasswordState
 
     LaunchedEffect(uiState) {
-        if (uiState is ForgotPasswordUiState.Success) {
-            onNavigateToResetPassword(email)
-
+        if (uiState is ResetPasswordUiState.Success) {
+            onNavigateToLogin()
             viewModel.resetState()
         }
     }
@@ -41,12 +40,12 @@ fun ForgotPasswordScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.forgot_password_title)) },
+                title = { Text("Reset Password") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.playlist_back_description)
+                            contentDescription = "Back"
                         )
                     }
                 }
@@ -62,27 +61,39 @@ fun ForgotPasswordScreen(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = stringResource(R.string.forgot_password_recover_header),
+                text = "Set New Password",
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = stringResource(R.string.forgot_password_instructions),
-                fontSize = 16.sp,
-                modifier = Modifier.padding(bottom = 32.dp)
+                text = "Resetting password for: $email",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            Spacer(modifier = Modifier.height(32.dp))
 
             HeartTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = stringResource(R.string.register_email_label)
+                value = newPassword,
+                onValueChange = { newPassword = it },
+                label = "New Password",
+                isPassword = true
             )
 
-            if (uiState is ForgotPasswordUiState.Error) {
+            Spacer(modifier = Modifier.height(16.dp))
+
+            HeartTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = "Confirm Password",
+                isPassword = true
+            )
+
+            if (uiState is ResetPasswordUiState.Error) {
                 Text(
                     text = uiState.message.asString(),
                     color = MaterialTheme.colorScheme.error,
@@ -90,24 +101,16 @@ fun ForgotPasswordScreen(
                 )
             }
 
-            if (uiState is ForgotPasswordUiState.Success) {
-                Text(
-                    text = uiState.message,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-
             Spacer(modifier = Modifier.height(32.dp))
 
             HeartButton(
-                text = if (uiState is ForgotPasswordUiState.Loading) stringResource(R.string.login_signing_in) else stringResource(R.string.forgot_password_send_link),
-                onClick = { 
-                    if (email.isNotBlank()) {
-                        viewModel.forgotPassword(email)
+                text = if (uiState is ResetPasswordUiState.Loading) "Updating..." else "Update Password",
+                onClick = {
+                    if (newPassword == confirmPassword && newPassword.isNotBlank()) {
+                        viewModel.resetPassword(email, newPassword)
                     }
                 },
-                enabled = uiState !is ForgotPasswordUiState.Loading
+                enabled = uiState !is ResetPasswordUiState.Loading && newPassword == confirmPassword && newPassword.isNotBlank()
             )
         }
     }

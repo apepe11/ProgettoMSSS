@@ -40,7 +40,8 @@ def send_async_email(app, msg):
 
 def send_reset_email(to_email, subject, body, category="Notification"):
     try:
-        app = current_app._get_current_object()
+        mail = current_app.extensions.get('mail')
+        #app = current_app._get_current_object()
         msg = Message(
             subject=subject,
             recipients=[to_email],
@@ -48,8 +49,8 @@ def send_reset_email(to_email, subject, body, category="Notification"):
             sender=current_app.config['MAIL_DEFAULT_SENDER']
         )
 
-        #mail.send(msg)
-        threading.Thread(target=send_async_email, args=(app, msg)).start()
+        mail.send(msg)
+        #threading.Thread(target=send_async_email, args=(app, msg)).start()
         return True
     except Exception as e:
         print(f"Errore invio mail: {e}")
@@ -116,16 +117,44 @@ def forgot_password():
     if not user:
         return jsonify({"error": "User with this email not found"}), 404
 
+
     success = send_reset_email(
                       to_email=email,
                       subject="HeartMusic Password Reset",
-                      body=f"Ciao {user.username}! Hai richiesto il reset della password."
+                      body=f"Ciao {user.username}! Hai richiesto una nuova password."
                   )
 
     if success:
         return jsonify({"message": "Reset instructions sent to your email"}), 200
     else:
         return jsonify({"error": "Failed to send email via Mailtrap"}), 500
+
+@api.route('/api/users/reset-password', methods=['POST'], strict_slashes=False)
+def reset_password():
+    data = request.get_json()
+    email = data.get('email')
+    new_password = data.get('new_password')
+
+    if not email or not new_password:
+            return jsonify({"error": "Email and new password are required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User with this email not found"}), 404
+
+    try:
+
+        hashed_password = generate_password_hash(new_password)
+        user.password_hash = hashed_password
+
+
+        db.session.commit()
+
+        return jsonify({"message": "Password updated successfully!"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to update password: {str(e)}"}), 500
 
 # ==========================================
 # 1. RECEIVE SMARTWATCH DATA (BPM & EDA)

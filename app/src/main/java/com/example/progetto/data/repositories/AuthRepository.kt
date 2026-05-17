@@ -22,6 +22,13 @@ class AuthRepository {
         return authApi.forgotPassword(mapOf("email" to email))
     }
 
+    suspend fun resetPassword(email: String, newPassword: String): Response<Map<String, String>> {
+        return authApi.resetPassword(mapOf(
+            "email" to email,
+            "new_password" to newPassword
+        ))
+    }
+
     suspend fun getReviews(userId: String): Response<UserReviewsResponse> {
         return authApi.getReviews(userId)
     }
