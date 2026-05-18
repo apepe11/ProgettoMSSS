@@ -12,10 +12,13 @@ import com.google.android.gms.wearable.Wearable
 import com.example.progetto.data.UserPreferences
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.util.UUID
 
 data class LiveSignalSnapshot(
@@ -51,12 +54,15 @@ class SensorCollectionViewModel(
     private var isSessionPaused = false
     private var signalSnapshotJob: Job? = null
     private var wearableHeartRateJob: Job? = null
+    private val _predictedEmotion = MutableStateFlow<String?>(null)
+    val predictedEmotion: StateFlow<String?> = _predictedEmotion.asStateFlow()
     private var loggedFirstEegSample = false
     private var eegFrameCount = 0
     private var lastEegFrameId: Long = -1L
     private var lastWearableHrTimestamp: Long = 0
     private val wearableMessageListener = WearableMessageListener()
     private val wearableHeartRateBuffer = mutableListOf<SensorReading>()
+    private val sessionTransitionMutex = Mutex()
 
     private val _signalSnapshot = MutableStateFlow(LiveSignalSnapshot())
     val signalSnapshot: StateFlow<LiveSignalSnapshot> = _signalSnapshot.asStateFlow()
@@ -98,78 +104,91 @@ class SensorCollectionViewModel(
     }
 
     fun startOrResumeListeningSession(userId: UUID, songId: UUID) {
-        when {
-            isSessionPaused && currentSongId == songId -> {
-                resumeListeningSession()
-                return
-            }
-            isSessionActive && currentSongId == songId -> {
-                Log.d(TAG, "Listening session already active for this song, skipping duplicate start")
-                return
+        viewModelScope.launch {
+            sessionTransitionMutex.withLock {
+                when {
+                    isSessionPaused && currentSongId == songId -> {
+                        resumeListeningSession()
+                        return@withLock
+                    }
+                    isSessionActive && currentSongId == songId -> {
+                        Log.d(TAG, "Listening session already active for this song, skipping duplicate start")
+                        return@withLock
+                    }
+                    isSessionActive && currentSongId != songId -> {
+                        Log.d(TAG, "Stopping previous paused/active session before starting a new song")
+                        stopListeningSessionInternal()
+                    }
+                }
+
+                startListeningSessionInternal(userId, songId)
             }
         }
-
-        startListeningSession(userId, songId)
     }
     
     /**
      * Start a new listening session and begin collecting sensor data
      */
     fun startListeningSession(userId: UUID, songId: UUID) {
+        viewModelScope.launch {
+            startListeningSessionInternal(userId, songId)
+        }
+    }
+
+    private suspend fun startListeningSessionInternal(userId: UUID, songId: UUID) {
         if (isSessionActive) {
             Log.d(TAG, "Listening session already active, skipping duplicate start")
             return
         }
 
         isSessionActive = true
-        viewModelScope.launch {
-            try {
-                val sessionResult = networkManager.createTrainingSession(userId, songId)
-                val sessionId = sessionResult.getOrNull()
-                if (sessionId == null) {
-                    isSessionActive = false
-                    savedStateHandle[KEY_SESSION_ACTIVE] = false
-                    Log.e(TAG, "Failed to create training session", sessionResult.exceptionOrNull())
-                    return@launch
-                }
-
-                currentSessionId = sessionId
-                currentSongId = songId
-                savedStateHandle[KEY_SESSION_ID] = sessionId.toString()
-                savedStateHandle[KEY_SONG_ID] = songId.toString()
-                savedStateHandle[KEY_SESSION_ACTIVE] = true
-                savedStateHandle[KEY_SESSION_PAUSED] = false
-                userPreferences.saveLastSessionId(sessionId.toString())
-
-                Log.d(TAG, "Starting listening session: $sessionId")
-                
-                // Start sensor collection
-                val status = sensorManager.startCollecting()
-                if (!status.hasAnySignal) {
-                    Log.w(TAG, "No wearable HR sensors available, continuing to collect EEG only")
-                }
-                wearableHeartRateBuffer.clear()
-                loggedFirstEegSample = false
-                eegFrameCount = 0
-                lastEegFrameId = -1L
-                startWearableMessageCollection()
-                WearableSamplingSender.sendStartSampling(context, isInference = false)
-
-                startSignalSnapshotUpdates()
-                Log.d(TAG, "Session active with sensors: hr=${status.heartRateRegistered}")
-                
-            } catch (e: Exception) {
+        try {
+            val sessionResult = networkManager.createTrainingSession(userId, songId)
+            val sessionId = sessionResult.getOrNull()
+            if (sessionId == null) {
                 isSessionActive = false
                 savedStateHandle[KEY_SESSION_ACTIVE] = false
-                isSessionPaused = false
-                savedStateHandle[KEY_SESSION_PAUSED] = false
-                Log.e(TAG, "Error starting session", e)
+                Log.e(TAG, "Failed to create training session", sessionResult.exceptionOrNull())
+                return
             }
+
+            currentSessionId = sessionId
+            currentSongId = songId
+            _predictedEmotion.value = null
+            savedStateHandle[KEY_SESSION_ID] = sessionId.toString()
+            savedStateHandle[KEY_SONG_ID] = songId.toString()
+            savedStateHandle[KEY_SESSION_ACTIVE] = true
+            savedStateHandle[KEY_SESSION_PAUSED] = false
+            userPreferences.saveLastSessionId(sessionId.toString())
+
+            Log.d(TAG, "Starting listening session: $sessionId")
+
+            // Start sensor collection
+            val status = sensorManager.startCollecting()
+            if (!status.hasAnySignal) {
+                Log.w(TAG, "No wearable HR sensors available, continuing to collect EEG only")
+            }
+            wearableHeartRateBuffer.clear()
+            loggedFirstEegSample = false
+            eegFrameCount = 0
+            lastEegFrameId = -1L
+            startWearableMessageCollection()
+            WearableSamplingSender.sendStartSampling(context, isInference = false)
+
+            startSignalSnapshotUpdates()
+            Log.d(TAG, "Session active with sensors: hr=${status.heartRateRegistered}")
+
+        } catch (e: Exception) {
+            isSessionActive = false
+            savedStateHandle[KEY_SESSION_ACTIVE] = false
+            isSessionPaused = false
+            savedStateHandle[KEY_SESSION_PAUSED] = false
+            Log.e(TAG, "Error starting session", e)
         }
     }
 
     fun pauseListeningSession() {
-        if (!isSessionActive || currentLuSessionId == null || isSessionPaused) {
+        if (!isSessionActive || currentSessionId == null || isSessionPaused) {
             return
         }
 
@@ -201,74 +220,107 @@ class SensorCollectionViewModel(
      */
     fun stopListeningSession(userRating: Int = 3) {
         viewModelScope.launch {
-            try {
-                if (!isSessionActive || currentSessionId == null) {
-                    Log.w(TAG, "No active session to stop")
-                    return@launch
-                }
-                
-                Log.d(TAG, "Stopping listening session: $currentSessionId")
-                
-                // Stop sensor collection
-                sensorManager.stopCollecting()
-                isSessionActive = false
-                isSessionPaused = false
-                savedStateHandle[KEY_SESSION_ACTIVE] = false
-                savedStateHandle[KEY_SESSION_PAUSED] = false
-                stopWearableMessageCollection()
-                stopSignalSnapshotUpdates()
-                
-                // Get collected data
-                val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
-                val eegData = sensorManager.getEegBuffer()
-                
-                Log.d(TAG, "Collected HR samples: ${hrData.size}")
-                Log.d(TAG, "Collected EEG samples: ${eegData.size}")
-                
-                // Send data to backend for training
-                if (hrData.isNotEmpty()) {
-                    val hrResult = networkManager.sendWearableData(
-                        sessionId = currentSessionId!!,
-                        sensorType = "hr",
-                        subject = "user",
-                        rating = userRating,
-                        sensorBuffer = hrData
-                    )
-                    hrResult.onSuccess {
-                        Log.d(TAG, "HR data sent successfully")
-                    }.onFailure {
-                        Log.e(TAG, "Failed to send HR data", it)
-                    }
-                }
-                
-                if (eegData.isNotEmpty()) {
-                    val eegResult = networkManager.sendEegData(
-                        sessionId = currentSessionId!!,
-                        subject = "user",
-                        rating = userRating,
-                        eegBuffer = eegData
-                    )
-                    eegResult.onSuccess {
-                        Log.d(TAG, "EEG data sent successfully")
-                    }.onFailure {
-                        Log.e(TAG, "Failed to send EEG data", it)
-                    }
-                }
-                
-                // Clear buffers
-                sensorManager.clearBuffers()
-                wearableHeartRateBuffer.clear()
-                lastWearableHrTimestamp = 0L
-                eegFrameCount = 0
-                lastEegFrameId = -1L
-                currentSessionId = null
-                currentSongId = null
-                savedStateHandle[KEY_SESSION_ID] = null
-                savedStateHandle[KEY_SONG_ID] = null
-                
-            } catch (e: Exception) {
-                Log.e(TAG, "Error stopping session", e)
+            sessionTransitionMutex.withLock {
+                stopListeningSessionInternal(userRating)
             }
+        }
+    }
+
+    private suspend fun stopListeningSessionInternal(userRating: Int = 3) {
+        try {
+            val sessionId = currentSessionId
+            if (!isSessionActive || sessionId == null) {
+                Log.w(TAG, "No active session to stop")
+                return
+            }
+
+            Log.d(TAG, "Stopping listening session: $sessionId")
+
+            // Stop sensor collection
+            sensorManager.stopCollecting()
+            isSessionActive = false
+            isSessionPaused = false
+            savedStateHandle[KEY_SESSION_ACTIVE] = false
+            savedStateHandle[KEY_SESSION_PAUSED] = false
+            stopWearableMessageCollection()
+            stopSignalSnapshotUpdates()
+
+            // Get collected data before clearing buffers
+            val hrData = sensorManager.getHeartRateBuffer() + wearableHeartRateBuffer.toList()
+            val eegData = sensorManager.getEegBuffer()
+
+            Log.d(TAG, "Collected HR samples: ${hrData.size}")
+            Log.d(TAG, "Collected EEG samples: ${eegData.size}")
+
+            // Send data to backend for training
+            if (hrData.isNotEmpty()) {
+                val hrResult = networkManager.sendWearableData(
+                    sessionId = sessionId,
+                    sensorType = "hr",
+                    subject = "user",
+                    rating = userRating,
+                    sensorBuffer = hrData
+                )
+                hrResult.onSuccess {
+                    Log.d(TAG, "HR data sent successfully")
+                }.onFailure {
+                    Log.e(TAG, "Failed to send HR data", it)
+                }
+            }
+
+            if (eegData.isNotEmpty()) {
+                val eegResult = networkManager.sendEegData(
+                    sessionId = sessionId,
+                    subject = "user",
+                    rating = userRating,
+                    eegBuffer = eegData
+                )
+                eegResult.onSuccess {
+                    Log.d(TAG, "EEG data sent successfully")
+                }.onFailure {
+                    Log.e(TAG, "Failed to send EEG data", it)
+                }
+            }
+
+            if (hrData.isEmpty() && eegData.isEmpty()) {
+                _predictedEmotion.value = "No instrumented sensor data was collected for this session."
+            } else {
+                _predictedEmotion.value = "Analysis in progress..."
+
+                val predictionResult = withTimeoutOrNull(30000) {
+                    networkManager.predictEmotion(sessionId)
+                }
+
+                if (predictionResult == null) {
+                    Log.e(TAG, "Emotion prediction timed out for session: $sessionId")
+                    _predictedEmotion.value = "Analysis unavailable (timeout)"
+                } else {
+                    predictionResult.onSuccess {
+                        _predictedEmotion.value = it
+                        Log.d(TAG, "Emotion prediction completed: $it")
+                    }.onFailure {
+                        Log.e(TAG, "Emotion prediction failed", it)
+                        _predictedEmotion.value = "Analysis unavailable"
+                    }
+                }
+            }
+
+            // Clear buffers and reset snapshot state after stopping
+            sensorManager.clearBuffers()
+            wearableHeartRateBuffer.clear()
+            lastWearableHrTimestamp = 0L
+            eegFrameCount = 0
+            lastEegFrameId = -1L
+
+            updateSignalSnapshot(isCollecting = false)
+
+            currentSessionId = null
+            currentSongId = null
+            savedStateHandle[KEY_SESSION_ID] = null
+            savedStateHandle[KEY_SONG_ID] = null
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error stopping session", e)
         }
     }
     

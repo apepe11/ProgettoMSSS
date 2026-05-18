@@ -74,9 +74,9 @@
     <string name="player_play_description">Play</string>
 
     <!-- Review Emotion Screen -->
-    <string name="review_feel_question">How do you feel?</string>
+    <string name="review_feel_question">Which emotion did you feel?</string>
     <string name="review_select_emotion">Select an emotion</string>
-    <string name="review_strength_question">How strong is your emotion?</string>
+    <string name="review_strength_question">How strong was that emotion?</string>
     <string name="review_describe_feeling">Describe your feeling</string>
     <string name="review_go_back">Go back</string>
     <string name="review_save_feeling">Save feeling</string>

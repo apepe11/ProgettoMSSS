@@ -48,7 +48,7 @@ fun ReviewEmotionScreen(
     var selectedEmotion by remember { mutableStateOf("") }
 
     // Other State Variables
-    var strengthValue by remember { mutableFloatStateOf(0.5f) }
+    var strengthValue by remember { mutableFloatStateOf(5f) }
     var description by remember { mutableStateOf("") }
     var errorText by remember { mutableStateOf<String?>(null) }
 
@@ -73,6 +73,22 @@ fun ReviewEmotionScreen(
         calm to 6,
         energetic to 7
     )
+
+    fun scaleToRange(value: Int, min: Int, max: Int): Int {
+        val clamped = value.coerceIn(0, 10)
+        val ratio = clamped / 10.0
+        return (min + (max - min) * ratio).roundToInt()
+    }
+
+    fun mapArousal(selected: String, intensity: Int): Int {
+        // Only Anxious and Energetic should map to the higher arousal range.
+        // Ensure Happy remains in the lower arousal mapping regardless of slider intensity.
+        return if (selected == anxious || selected == energetic) {
+            scaleToRange(intensity, 6, 10)
+        } else {
+            scaleToRange(intensity, 0, 5)
+        }
+    }
 
     // OUTER COLUMN: Holds everything. Notice the Scaffold is completely gone!
     Column(
@@ -105,7 +121,7 @@ fun ReviewEmotionScreen(
                 ) {
                     OutlinedTextField(
                         value = selectedEmotion,
-                        onValueChange = {}, // Left empty because it's read-only
+                        onValueChange = {},
                         readOnly = true,
                         placeholder = { Text(stringResource(R.string.review_select_emotion)) },
                         trailingIcon = {
@@ -113,7 +129,7 @@ fun ReviewEmotionScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(), // Connects the menu to this text field
+                            .menuAnchor(),
                         shape = RoundedCornerShape(8.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -132,7 +148,7 @@ fun ReviewEmotionScreen(
                                 text = { Text(selectionOption) },
                                 onClick = {
                                     selectedEmotion = selectionOption
-                                    expanded = false // Close menu after selecting
+                                    expanded = false
                                 }
                             )
                         }
@@ -153,11 +169,18 @@ fun ReviewEmotionScreen(
                 Slider(
                     value = strengthValue,
                     onValueChange = { strengthValue = it },
+                    valueRange = 0f..10f,
+                    steps = 9,
                     colors = SliderDefaults.colors(
                         thumbColor = MaterialTheme.colorScheme.primary,
                         activeTrackColor = MaterialTheme.colorScheme.primary,
                         inactiveTrackColor = MaterialTheme.colorScheme.outlineVariant
                     )
+                )
+                Text(
+                    text = "${strengthValue.roundToInt()}/10",
+                    fontSize = 12.sp,
+                    color = Color.Gray
                 )
             }
 
@@ -207,7 +230,9 @@ fun ReviewEmotionScreen(
                         return@HeartButton
                     }
                     val valence = valenceByEmotion[selectedEmotion] ?: 5
-                    val arousal = (strengthValue * 10f).roundToInt().coerceIn(0, 10)
+                    val intensity = strengthValue.roundToInt().coerceIn(0, 10)
+                    val arousal = mapArousal(selectedEmotion, intensity)
+                    val detectedEmotion = selectedEmotion
                     errorText = null
                     feelingViewModel.saveReview(
                         userId = resolvedUserId,
@@ -215,7 +240,7 @@ fun ReviewEmotionScreen(
                         valence = valence,
                         arousal = arousal,
                         description = description,
-                        detectedEmotion = selectedEmotion
+                        detectedEmotion = detectedEmotion
                     ) {
                         scope.launch {
                             UserPreferences(context).clearLastSessionId()

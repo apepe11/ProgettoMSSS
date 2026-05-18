@@ -27,6 +27,7 @@ import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.EmotionAnalysisViewModel
 import com.example.progetto.ui.viewmodels.PlayerViewModel
 import com.example.progetto.utils.LiveSignalSnapshot
+import com.example.progetto.utils.SensorAvailability
 import com.example.progetto.utils.SensorCollectionViewModel
 import java.util.UUID
 import java.util.Locale
@@ -60,10 +61,25 @@ fun EmotionAnalysisScreen(
     val currentPosition by playerViewModel.currentPosition.collectAsState()
     val duration by playerViewModel.duration.collectAsState()
     val signalSnapshot by sessionSensorViewModel.signalSnapshot.collectAsState()
+    val predictedEmotion by sessionSensorViewModel.predictedEmotion.collectAsState()
     var autoPlayedSongId by rememberSaveable { mutableStateOf<String?>(null) }
     var completedSongId by rememberSaveable { mutableStateOf<String?>(null) }
 
+    val eegActive = signalSnapshot.eegSamples > 0 || SensorAvailability.hasEegSignal()
+    val watchActive = signalSnapshot.heartRateSamples > 0 || SensorAvailability.hasWatchSignal(context)
+    val missingSensors = buildList {
+        if (!eegActive) add("EEG")
+        if (!watchActive) add("Watch HR")
+    }
+
     val songFinished = currentSong?.song_id == completedSongId
+
+    LaunchedEffect(predictedEmotion) {
+        val emotion = predictedEmotion
+        if (!emotion.isNullOrBlank()) {
+            viewModel.setCurrentEmotion(emotion)
+        }
+    }
 
     LaunchedEffect(advanceAfterReview) {
         if (advanceAfterReview) {
@@ -81,6 +97,9 @@ fun EmotionAnalysisScreen(
             ?.let { runCatching { UUID.fromString(it) }.getOrNull() }
             ?: UUID.randomUUID()
         if (songId != null) {
+            if (currentEmotion.contains("unavailable", ignoreCase = true)) {
+                viewModel.setCurrentEmotion("Analyzing...")
+            }
             sessionSensorViewModel.startOrResumeListeningSession(userUuid, songId)
         }
     }
@@ -125,7 +144,7 @@ fun EmotionAnalysisScreen(
 
         if (song != null && currentSong?.song_id != null) {
             val songUuid = runCatching { UUID.fromString(song.song_id) }.getOrNull()
-            if (isCurrentSongPlaying && songUuid != null && sensorsAvailable) {
+            if (isCurrentSongPlaying && songUuid != null) {
                 startCurrentListeningSession()
             } else if (songUuid != null && sessionSensorViewModel.isCollecting()) {
                 sessionSensorViewModel.pauseListeningSession()
@@ -144,7 +163,7 @@ fun EmotionAnalysisScreen(
 
         if (isCurrentSongAtEnd && completedSongId != songId) {
             completedSongId = songId
-            sessionSensorViewModel.pauseListeningSession()
+            sessionSensorViewModel.stopListeningSession()
         }
     }
 
@@ -159,6 +178,11 @@ fun EmotionAnalysisScreen(
 
         // Warning banner if no sensors
         if (!sensorsAvailable) {
+            val missingText = if (missingSensors.isNotEmpty()) {
+                "Missing: ${missingSensors.joinToString(", ")}"
+            } else {
+                "Signals not detected"
+            }
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -167,7 +191,7 @@ fun EmotionAnalysisScreen(
                 color = MaterialTheme.colorScheme.errorContainer
             ) {
                 Text(
-                    text = "⚠️ EEG non in streaming o watch non collegata\nL'analisi resta disponibile, ma i dati reali non sono attivi.",
+                    text = "⚠️ $missingText\nL'analisi resta disponibile, ma i dati reali non sono attivi.",
                     fontSize = 13.sp,
                     color = MaterialTheme.colorScheme.error,
                     textAlign = TextAlign.Center,
@@ -302,6 +326,7 @@ fun EmotionAnalysisScreen(
                 HeartButton(
                     text = "Review the song",
                     onClick = {
+                        sessionSensorViewModel.stopListeningSession()
                         onReviewSong()
                     },
                     modifier = Modifier.fillMaxWidth(0.8f),
@@ -318,6 +343,7 @@ fun EmotionAnalysisScreen(
                 SignalPerceptionPanel(
                     snapshot = signalSnapshot,
                     sensorsAvailable = sensorsAvailable,
+                    missingSensors = missingSensors,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -343,6 +369,7 @@ fun EmotionAnalysisScreen(
 private fun SignalPerceptionPanel(
     snapshot: LiveSignalSnapshot,
     sensorsAvailable: Boolean,
+    missingSensors: List<String>,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -367,6 +394,8 @@ private fun SignalPerceptionPanel(
                 "Listening to live physiological signals..."
             } else if (sensorsAvailable) {
                 "Preparing signal collection..."
+            } else if (missingSensors.isNotEmpty()) {
+                "Missing sensors: ${missingSensors.joinToString(", ")}"
             } else {
                 "No live wearable signal detected yet."
             },

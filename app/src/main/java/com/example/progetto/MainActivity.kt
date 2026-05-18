@@ -239,7 +239,11 @@ fun GlobalDrawerNavigation() {
                                             contentScale = ContentScale.Fit
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("HeartMusic", fontSize = 20.sp, color = Color.Black)
+                                        Text(
+                                            "HeartMusic",
+                                            fontSize = 20.sp,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 },
                                 actions = {
@@ -247,7 +251,7 @@ fun GlobalDrawerNavigation() {
                                         Icon(
                                             imageVector = Icons.Default.MoreVert,
                                             contentDescription = "Menu",
-                                            tint = Color.Black
+                                            tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
                                 },

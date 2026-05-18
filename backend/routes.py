@@ -445,6 +445,18 @@ def _normalize_rating(raw_rating):
     return None
 
 
+def _map_review_to_rating(valence: int, arousal: int) -> int:
+    """Map valence/arousal (0-10) to rating label index (0..4)."""
+    v = max(0, min(10, valence))
+    a = max(0, min(10, arousal))
+
+    if v <= 3:
+        return 1 if a >= 6 else 0  # Anxious or Sad
+    if v >= 7:
+        return 3 if a >= 6 else 4  # Energetic or Happy
+    return 2  # Calm
+
+
 @api.route('/api/training/sessions', methods=['POST'])
 def create_training_session():
     data = request.get_json() or {}
@@ -669,29 +681,91 @@ def export_training_data_for_classifier():
         }
     }), 200
 
+
+@api.route('/api/model/train', methods=['POST'])
+def train_emotion_model():
+    try:
+        from model_utils import train_emotion_model as runner
+
+        metrics = runner()
+        return jsonify({
+            "message": "Model training completed successfully.",
+            "metrics": metrics
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@api.route('/api/model/predict', methods=['POST'])
+def predict_emotion():
+    data = request.get_json() or {}
+    session_id = data.get('session_id')
+
+    if not session_id:
+        return jsonify({"error": "session_id is required"}), 400
+
+    try:
+        from model_utils import predict_emotion_for_session
+
+        prediction = predict_emotion_for_session(session_id)
+        session = ListeningSession.query.filter_by(session_id=session_id).first()
+        if session and prediction.get('emotion_id') is not None:
+            session.system_detected_emotion_id = prediction['emotion_id']
+            db.session.commit()
+
+        return jsonify({
+            "message": "Emotion predicted successfully.",
+            "prediction": prediction
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 # ==========================================
 # 6. SONG REVIEWS (YOUR FEELINGS)
 # ==========================================
 
 @api.route('/api/reviews', methods=['POST'])
 def save_song_review():
-    data = request.get_json()
+    data = request.get_json() or {}
 
     try:
+        session_id = data.get('session_id')
+        valence = int(data.get('valence'))
+        arousal = int(data.get('arousal'))
+        rating = _map_review_to_rating(valence, arousal)
+
         new_review = SongReview(
             user_id=data.get('user_id'),
-            session_id=data.get('session_id'),
-            valence=int(data.get('valence')),
-            arousal=int(data.get('arousal')),
+            session_id=session_id,
+            valence=valence,
+            arousal=arousal,
             description=data.get('description'),
             detected_emotion=data.get('detected_emotion')
         )
         db.session.add(new_review)
+
+        eeg_updated = 0
+        wearable_updated = 0
+        if session_id:
+            eeg_updated = EEGTrainingSample.query.filter_by(session_id=session_id).update(
+                {"rating": rating}, synchronize_session=False
+            )
+            wearable_updated = WearableTrainingSample.query.filter_by(session_id=session_id).update(
+                {"rating": rating}, synchronize_session=False
+            )
         db.session.commit()
 
         return jsonify({
             "message": "Review saved successfully!",
-            "review_id": str(new_review.review_id)
+            "review_id": str(new_review.review_id),
+            "training_label": rating,
+            "updated_samples": {
+                "eeg": eeg_updated,
+                "wearable": wearable_updated
+            }
         }), 201
     except Exception as e:
         db.session.rollback()

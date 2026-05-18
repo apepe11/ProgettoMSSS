@@ -36,7 +36,24 @@ class EmotionAnalysisViewModel(application: Application) : AndroidViewModel(appl
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
-    private val emotionsList = listOf("Happy", "Sad", "Energetic", "Calm", "Anxious", "Peaceful", "Motivated", "Melancholic")
+    private var shuffleQueue = mutableListOf<SongData>()
+
+    private fun buildShuffleQueue(songs: List<SongData>, excludeSongId: String?): MutableList<SongData> {
+        val selectableSongs = songs.filter { it.song_id != excludeSongId }
+        val queue = if (selectableSongs.isNotEmpty()) selectableSongs.shuffled() else songs.shuffled()
+        return queue.toMutableList()
+    }
+
+    private fun nextShuffledSong(songs: List<SongData>, previousSongId: String?): SongData {
+        if (shuffleQueue.isEmpty()) {
+            shuffleQueue = buildShuffleQueue(songs, previousSongId)
+        }
+        if (shuffleQueue.isEmpty()) {
+            // Fallback if somehow no songs were available in the queue
+            shuffleQueue = songs.shuffled().toMutableList()
+        }
+        return shuffleQueue.removeAt(0)
+    }
 
     init {
         refreshSensorAvailability()
@@ -61,6 +78,10 @@ class EmotionAnalysisViewModel(application: Application) : AndroidViewModel(appl
         _sensorsAvailable.value = SensorAvailability.hasEmotionSensors(getApplication())
     }
 
+    fun setCurrentEmotion(emotion: String) {
+        _currentEmotion.value = emotion
+    }
+
     fun loadRandomSong() {
         viewModelScope.launch {
             _isLoading.value = true
@@ -74,22 +95,7 @@ class EmotionAnalysisViewModel(application: Application) : AndroidViewModel(appl
                 val songs = songsResponse.body()?.songs.orEmpty()
                 if (songs.isNotEmpty()) {
                     val previousSongId = _currentSong.value?.song_id
-                    val selectableSongs = songs.filter { it.songId != previousSongId }.ifEmpty { songs }
-                    val randomSong = selectableSongs.random()
-                    _currentSong.value = SongData(
-                        song_id = randomSong.songId,
-                        title = randomSong.title,
-                        artist = randomSong.artist,
-                        album = "",
-                        url = randomSong.url
-                    )
-                    _currentEmotion.value = emotionsList.random()
-                } else {
-                    Log.w("EmotionAnalysisVM", "Songs endpoint empty, trying top songs")
-                    val previousSongId = _currentSong.value?.song_id
-                    val topSongs = RetrofitClient.playlistApiService.getTopSongs().body()?.songs.orEmpty()
-                    val selectableSongs = topSongs.filter { it.songId != previousSongId }.ifEmpty { topSongs }
-                    val selectedSong = selectableSongs.randomOrNull()?.let {
+                    val nextSong = nextShuffledSong(songs.map {
                         SongData(
                             song_id = it.songId,
                             title = it.title,
@@ -97,16 +103,36 @@ class EmotionAnalysisViewModel(application: Application) : AndroidViewModel(appl
                             album = "",
                             url = it.url
                         )
-                    } ?: fallbackSong
+                    }, previousSongId)
+                    _currentSong.value = nextSong
+                    _currentEmotion.value = "Analyzing..."
+                } else {
+                    Log.w("EmotionAnalysisVM", "Songs endpoint empty, trying top songs")
+                    val currentSongId = _currentSong.value?.song_id
+                    val topSongs = RetrofitClient.playlistApiService.getTopSongs().body()?.songs.orEmpty()
+                    val topSongData = topSongs.map {
+                        SongData(
+                            song_id = it.songId,
+                            title = it.title,
+                            artist = it.artist,
+                            album = "",
+                            url = it.url
+                        )
+                    }
+                    val selectedSong = if (topSongData.isNotEmpty()) {
+                        nextShuffledSong(topSongData, currentSongId)
+                    } else {
+                        fallbackSong
+                    }
                     _currentSong.value = selectedSong
                     _error.value = null
-                    _currentEmotion.value = emotionsList.random()
+                    _currentEmotion.value = "Analyzing..."
                 }
             } catch (e: Exception) {
                 Log.e("EmotionAnalysisVM", "Error loading song: ${e.message}")
                 _error.value = "Failed to load song"
                 _currentSong.value = fallbackSong
-                _currentEmotion.value = emotionsList.random()
+                _currentEmotion.value = "Unable to analyze"
             } finally {
                 _isLoading.value = false
             }

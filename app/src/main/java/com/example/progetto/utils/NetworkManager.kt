@@ -11,13 +11,19 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 /**
  * NetworkManager handles sending sensor data to the backend API
  */
 class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl().removeSuffix("/")) {
 
-    private val client = OkHttpClient()
+    private val client = OkHttpClient.Builder()
+        .callTimeout(30, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
     private val mediaType = "application/json; charset=utf-8".toMediaType()
 
     companion object {
@@ -386,6 +392,67 @@ class NetworkManager(private val baseUrl: String = BackendUrlProvider.getBaseUrl
             Log.e(TAG, "Error fetching songs", e)
         }
         return@withContext emptyList()
+    }
+
+    /**
+     * Ask the backend to run the emotion prediction model for a completed session.
+     */
+    suspend fun predictEmotion(sessionId: UUID): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val json = JSONObject().apply {
+                put("session_id", sessionId.toString())
+            }
+
+            val request = Request.Builder()
+                .url("$baseUrl/api/model/predict")
+                .post(json.toString().toRequestBody(mediaType))
+                .build()
+
+            val response = client.newCall(request).execute()
+            val body = response.body?.string() ?: ""
+
+            if (response.isSuccessful) {
+                val responseJson = JSONObject(body)
+                val prediction = responseJson.optJSONObject("prediction")
+                val emotion = prediction?.optString("predicted_emotion")
+                if (!emotion.isNullOrEmpty()) {
+                    return@withContext Result.success(emotion)
+                }
+                return@withContext Result.failure(Exception("Invalid prediction response: $body"))
+            }
+
+            Log.e(TAG, "Predict emotion failed: ${'$'}{response.code} - $body")
+            return@withContext Result.failure(Exception("HTTP ${'$'}{response.code}: $body"))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error predicting emotion", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Trigger backend model training using the current collected dataset.
+     */
+    suspend fun trainEmotionModel(): Result<String> = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder()
+                .url("$baseUrl/api/model/train")
+                .post("{}".toRequestBody(mediaType))
+                .build()
+
+            val response = client.newCall(request).execute()
+            val body = response.body?.string() ?: ""
+
+            if (response.isSuccessful) {
+                val responseJson = JSONObject(body)
+                val metrics = responseJson.optJSONObject("metrics")
+                return@withContext Result.success(metrics?.toString() ?: "Model trained")
+            }
+            Log.e(TAG, "Model training failed: ${'$'}{response.code} - $body")
+            return@withContext Result.failure(Exception("HTTP ${'$'}{response.code}: $body"))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error training model", e)
+            Result.failure(e)
+        }
     }
 }
 data class SongData(
