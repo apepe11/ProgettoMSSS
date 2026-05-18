@@ -168,4 +168,5 @@
     <string name="error_load_feelings">Failed to load feelings</string>
     <string name="error_save_feelings">Failed to save feelings</string>
     <string name="error_load_song">Failed to load song</string>
+    <string name="error_user_not_found">User with this email not found</string>
 </resources>

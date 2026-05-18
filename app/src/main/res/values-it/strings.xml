@@ -168,4 +168,5 @@
     <string name="error_load_feelings">Impossibile caricare i sentimenti</string>
     <string name="error_save_feelings">Impossibile salvare i sentimenti</string>
     <string name="error_load_song">Impossibile caricare il brano</string>
+    <string name="error_user_not_found">Utente con questa email non trovato</string>
 </resources>
