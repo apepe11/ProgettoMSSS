@@ -74,9 +74,9 @@ fun EmotionAnalysisScreen(
 
     val songFinished = currentSong?.song_id == completedSongId
 
-    LaunchedEffect(predictedEmotion) {
+    LaunchedEffect(predictedEmotion, songFinished) {
         val emotion = predictedEmotion
-        if (!emotion.isNullOrBlank()) {
+        if (!emotion.isNullOrBlank() && songFinished) {
             viewModel.setCurrentEmotion(emotion)
         }
     }

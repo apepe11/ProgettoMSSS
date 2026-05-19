@@ -80,6 +80,7 @@ CREATE TABLE song_reviews (
     review_id UUID PRIMARY KEY,
     user_id UUID REFERENCES users (user_id) ON DELETE CASCADE,
     session_id UUID REFERENCES listening_sessions (session_id) ON DELETE SET NULL,
+    emotion_id INT REFERENCES emotions (emotion_id) ON DELETE SET NULL,
     valence INT NOT NULL,
     arousal INT NOT NULL,
     description TEXT,

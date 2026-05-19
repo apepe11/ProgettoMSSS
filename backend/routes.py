@@ -807,13 +807,24 @@ def save_song_review():
 
     try:
         session_id = data.get('session_id')
+        emotion_id_raw = data.get('emotion_id')
         valence = int(data.get('valence'))
         arousal = int(data.get('arousal'))
         rating = _map_review_to_rating(valence, arousal)
 
+        try:
+            emotion_id = int(emotion_id_raw)
+        except (TypeError, ValueError):
+            return jsonify({"error": "emotion_id is required"}), 400
+
+        emotion = Emotion.query.filter_by(emotion_id=emotion_id).first()
+        if not emotion:
+            return jsonify({"error": "emotion_id not found"}), 400
+
         new_review = SongReview(
             user_id=data.get('user_id'),
             session_id=session_id,
+            emotion_id=emotion_id,
             valence=valence,
             arousal=arousal,
             description=data.get('description'),
@@ -855,6 +866,7 @@ def get_user_reviews(user_id):
             review_list.append({
                 "review_id": str(r.review_id),
                 "session_id": str(r.session_id) if r.session_id else None,
+                "emotion_id": r.emotion_id,
                 "valence": r.valence,
                 "arousal": r.arousal,
                 "description": r.description or "",
@@ -901,13 +913,13 @@ def get_insights(user_id):
          .filter(ListeningSession.user_id == user_id) \
          .group_by(Emotion.name).all()
 
-        # 2. Query for USER EXPERIENCED totals (With safer casting)
+        # 2. Query for USER EXPERIENCED totals (use SongReview as ground truth)
         user_experienced_counts = db.session.query(
-            Emotion.name, func.count(SurveyResponse.response_id)
+            Emotion.name, func.count(SongReview.review_id)
         ).join(
-            SurveyResponse,
-            db.cast(SurveyResponse.answer_data['emotion_id'].astext, db.Integer) == Emotion.emotion_id
-        ).filter(SurveyResponse.user_id == user_id) \
+            SongReview,
+            SongReview.emotion_id == Emotion.emotion_id
+        ).filter(SongReview.user_id == user_id) \
          .group_by(Emotion.name).all()
 
         # Helper to convert [(Name, Count)] to {name: percentage}

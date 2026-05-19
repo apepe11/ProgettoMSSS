@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.progetto.ui.theme.HeartMusicTheme
+import com.example.progetto.utils.InsightsFilter
 import com.example.progetto.utils.InsightsViewModel
 import kotlin.math.cos
 import kotlin.math.sin
@@ -75,8 +76,8 @@ fun StatisticalAnalysisContent(
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurfaceVariant
 
     val filterOptions = listOf(
-        stringResource(R.string.insights_app_detected),
-        stringResource(R.string.insights_user_experienced)
+        InsightsFilter.APP_DETECTED to stringResource(R.string.insights_app_detected),
+        InsightsFilter.USER_EXPERIENCED to stringResource(R.string.insights_user_experienced)
     )
 
     Column(
@@ -202,19 +203,19 @@ fun StatisticalAnalysisContent(
                 .background(lightBackground, RoundedCornerShape(50))
                 .padding(4.dp)
         ) {
-            filterOptions.forEach { option ->
-                val isSelected = selectedFilter == option
+            filterOptions.forEach { (filter, label) ->
+                val isSelected = selectedFilter == filter
 
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(50))
                         .background(if (isSelected) primaryColor else Color.Transparent)
-                        .clickable { viewModel.setFilter(option) }
+                        .clickable { viewModel.setFilter(filter) }
                         .padding(horizontal = 16.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = option,
+                        text = label,
                         fontSize = 12.sp,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium

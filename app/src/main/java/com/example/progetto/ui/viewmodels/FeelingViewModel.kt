@@ -48,6 +48,7 @@ class FeelingViewModel : ViewModel() {
     fun saveReview(
         userId: String,
         sessionId: String?,
+        emotionId: Int,
         valence: Int,
         arousal: Int,
         description: String,
@@ -56,7 +57,7 @@ class FeelingViewModel : ViewModel() {
     ) {
         viewModelScope.launch {
             try {
-                val request = SongReviewRequest(userId, sessionId, valence, arousal, description, detectedEmotion)
+                val request = SongReviewRequest(userId, sessionId, emotionId, valence, arousal, description, detectedEmotion)
                 val response = authRepository.saveReview(request)
                 if (response.isSuccessful) {
                     Log.d(TAG, "Review saved successfully")

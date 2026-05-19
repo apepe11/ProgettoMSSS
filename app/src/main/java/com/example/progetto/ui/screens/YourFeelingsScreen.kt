@@ -95,6 +95,8 @@ fun YourFeelingsScreen(
 
 @Composable
 fun FeelingEntryItem(review: SongReviewResponse) {
+    val emotionLabel = emotionLabelForId(review.emotionId, review.detectedEmotion)
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -177,7 +179,7 @@ fun FeelingEntryItem(review: SongReviewResponse) {
             }
             
             // Badge Emozione Rilevata
-            review.detectedEmotion?.let { emotion ->
+            emotionLabel?.let { emotion ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -202,5 +204,17 @@ fun FeelingEntryItem(review: SongReviewResponse) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun emotionLabelForId(emotionId: Int?, fallback: String?): String? {
+    return when (emotionId) {
+        1 -> stringResource(R.string.emotion_happy)
+        2 -> stringResource(R.string.emotion_sad)
+        3 -> stringResource(R.string.emotion_calm)
+        4 -> stringResource(R.string.emotion_anxious)
+        5 -> stringResource(R.string.emotion_energetic)
+        else -> fallback
     }
 }

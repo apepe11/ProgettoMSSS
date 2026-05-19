@@ -36,16 +36,25 @@ fun ReviewEmotionScreen(
     authViewModel: AuthViewModel,
     feelingViewModel: FeelingViewModel = viewModel()
 ) {
+    data class EmotionOption(val id: Int, val label: String)
+
+    // Keep these IDs aligned with backend/app.py emotion seeding order.
+    val emotionIdHappy = 1
+    val emotionIdSad = 2
+    val emotionIdCalm = 3
+    val emotionIdAnxious = 4
+    val emotionIdEnergetic = 5
+
     // 1. Dropdown State Variables
     val emotionsList = listOf(
-        stringResource(R.string.emotion_happy),
-        stringResource(R.string.emotion_sad),
-        stringResource(R.string.emotion_anxious),
-        stringResource(R.string.emotion_calm),
-        stringResource(R.string.emotion_energetic)
+        EmotionOption(emotionIdHappy, stringResource(R.string.emotion_happy)),
+        EmotionOption(emotionIdSad, stringResource(R.string.emotion_sad)),
+        EmotionOption(emotionIdAnxious, stringResource(R.string.emotion_anxious)),
+        EmotionOption(emotionIdCalm, stringResource(R.string.emotion_calm)),
+        EmotionOption(emotionIdEnergetic, stringResource(R.string.emotion_energetic))
     )
     var expanded by remember { mutableStateOf(false) }
-    var selectedEmotion by remember { mutableStateOf("") }
+    var selectedEmotion by remember { mutableStateOf<EmotionOption?>(null) }
 
     // Other State Variables
     var strengthValue by remember { mutableFloatStateOf(5f) }
@@ -60,18 +69,12 @@ fun ReviewEmotionScreen(
         value = prefs.lastSessionId.first()
     }
 
-    val happy = stringResource(R.string.emotion_happy)
-    val sad = stringResource(R.string.emotion_sad)
-    val anxious = stringResource(R.string.emotion_anxious)
-    val calm = stringResource(R.string.emotion_calm)
-    val energetic = stringResource(R.string.emotion_energetic)
-
-    val valenceByEmotion = mapOf(
-        happy to 8,
-        sad to 2,
-        anxious to 3,
-        calm to 6,
-        energetic to 7
+    val valenceByEmotionId = mapOf(
+        emotionIdHappy to 8,
+        emotionIdSad to 2,
+        emotionIdAnxious to 3,
+        emotionIdCalm to 6,
+        emotionIdEnergetic to 7
     )
 
     fun scaleToRange(value: Int, min: Int, max: Int): Int {
@@ -80,10 +83,10 @@ fun ReviewEmotionScreen(
         return (min + (max - min) * ratio).roundToInt()
     }
 
-    fun mapArousal(selected: String, intensity: Int): Int {
+    fun mapArousal(selectedId: Int, intensity: Int): Int {
         // Only Anxious and Energetic should map to the higher arousal range.
         // Ensure Happy remains in the lower arousal mapping regardless of slider intensity.
-        return if (selected == anxious || selected == energetic) {
+        return if (selectedId == emotionIdAnxious || selectedId == emotionIdEnergetic) {
             scaleToRange(intensity, 6, 10)
         } else {
             scaleToRange(intensity, 0, 5)
@@ -120,7 +123,7 @@ fun ReviewEmotionScreen(
                     onExpandedChange = { expanded = !expanded }
                 ) {
                     OutlinedTextField(
-                        value = selectedEmotion,
+                        value = selectedEmotion?.label ?: "",
                         onValueChange = {},
                         readOnly = true,
                         placeholder = { Text(stringResource(R.string.review_select_emotion)) },
@@ -145,7 +148,7 @@ fun ReviewEmotionScreen(
                     ) {
                         emotionsList.forEach { selectionOption ->
                             DropdownMenuItem(
-                                text = { Text(selectionOption) },
+                                text = { Text(selectionOption.label) },
                                 onClick = {
                                     selectedEmotion = selectionOption
                                     expanded = false
@@ -225,18 +228,21 @@ fun ReviewEmotionScreen(
                         errorText = context.getString(R.string.review_error_session)
                         return@HeartButton
                     }
-                    if (selectedEmotion.isBlank()) {
+                    val selected = selectedEmotion
+                    if (selected == null) {
                         errorText = context.getString(R.string.review_error_select)
                         return@HeartButton
                     }
-                    val valence = valenceByEmotion[selectedEmotion] ?: 5
+                    val emotionId = selected.id
+                    val valence = valenceByEmotionId[emotionId] ?: 5
                     val intensity = strengthValue.roundToInt().coerceIn(0, 10)
-                    val arousal = mapArousal(selectedEmotion, intensity)
-                    val detectedEmotion = selectedEmotion
+                    val arousal = mapArousal(emotionId, intensity)
+                    val detectedEmotion = selected.label
                     errorText = null
                     feelingViewModel.saveReview(
                         userId = resolvedUserId,
                         sessionId = sessionId,
+                        emotionId = emotionId,
                         valence = valence,
                         arousal = arousal,
                         description = description,
