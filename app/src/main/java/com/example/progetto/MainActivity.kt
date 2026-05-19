@@ -26,6 +26,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -116,7 +117,7 @@ fun GlobalDrawerNavigation() {
 
     // Usiamo remember per reagire ai cambiamenti nel ViewModel
     val currentUser = authViewModel.currentUser
-    val username = currentUser?.username ?: "Guest"
+    val username = currentUser?.username ?: stringResource(R.string.nav_guest)
 
     // Sincronizza lo userId nel PlayerViewModel
     LaunchedEffect(currentUser) {
@@ -139,7 +140,7 @@ fun GlobalDrawerNavigation() {
                 CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                     ModalDrawerSheet(
                         modifier = Modifier.fillMaxHeight().width(280.dp),
-                        drawerContainerColor = Color.White
+                        drawerContainerColor = Color(0xFF1C1B1F)
                     ) {
                         Spacer(modifier = Modifier.height(24.dp))
                         Row(
@@ -153,23 +154,26 @@ fun GlobalDrawerNavigation() {
                                 text = username,
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                color = Color(0xFFD0BCFF)
                             )
                         }
-                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        HorizontalDivider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = Color.Gray
+                        )
                         Spacer(modifier = Modifier.height(16.dp))
 
                         val allMenuItems = listOf(
-                            Triple("Emotion analysis", Icons.Default.Analytics, "emotion_analysis"),
-                            Triple("Listening Mode", Icons.Default.Headset, "listening_mode"),
-                            Triple("Your feelings", Icons.Default.Favorite, "your_feelings"),
-                            Triple("Insights", Icons.Default.BarChart, "insights"),
-                            Triple("Favourite Songs", Icons.Default.LibraryMusic, "favourite_songs")
+                            Triple(R.string.nav_emotion_analysis, Icons.Default.Analytics, "emotion_analysis"),
+                            Triple(R.string.nav_listening_mode, Icons.Default.Headset, "listening_mode"),
+                            Triple(R.string.nav_your_feelings, Icons.Default.Favorite, "your_feelings"),
+                            Triple(R.string.nav_insights, Icons.Default.BarChart, "insights"),
+                            Triple(R.string.nav_favourite_songs, Icons.Default.LibraryMusic, "favourite_songs")
                         )
 
-                        allMenuItems.forEach { (label, icon, route) ->
+                        allMenuItems.forEach { (labelRes, icon, route) ->
                             NavigationDrawerItem(
-                                label = { Text(label) },
+                                label = { Text(stringResource(labelRes)) },
                                 selected = false,
                                 onClick = {
                                     if (route == "emotion_analysis" &&
@@ -177,7 +181,7 @@ fun GlobalDrawerNavigation() {
                                     ) {
                                         Toast.makeText(
                                             context,
-                                            "Connect EEG and watch to use Emotion Analysis.",
+                                            context.getString(R.string.toast_connect_sensors),
                                             Toast.LENGTH_SHORT
                                         ).show()
                                         return@NavigationDrawerItem
@@ -190,13 +194,20 @@ fun GlobalDrawerNavigation() {
                                     }
                                 },
                                 icon = { Icon(icon, contentDescription = null) },
-                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
+                                modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                                colors = NavigationDrawerItemDefaults.colors(
+                                    unselectedTextColor = Color.White,
+                                    unselectedIconColor = Color.White,
+                                    selectedTextColor = Color.White,
+                                    selectedIconColor = Color.White,
+                                    unselectedContainerColor = Color.Transparent
+                                )
                             )
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
                         NavigationDrawerItem(
-                            label = { Text("Logout", color = Color.Red) },
+                            label = { Text(stringResource(R.string.nav_logout), color = Color.Red) },
                             selected = false,
                             onClick = {
                                 scope.launch {
@@ -240,7 +251,7 @@ fun GlobalDrawerNavigation() {
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
-                                            "HeartMusic",
+                                            stringResource(R.string.app_name),
                                             fontSize = 20.sp,
                                             color = MaterialTheme.colorScheme.primary
                                         )

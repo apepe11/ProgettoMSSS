@@ -105,8 +105,8 @@
     <!-- Your Feelings Screen -->
     <string name="feelings_title">I Tuoi Sentimenti</string>
     <string name="feelings_empty">Nessun sentimento registrato finora.</string>
-    <string name="feelings_vibe">Vibe</string>
-    <string name="feelings_energy">Energia</string>
+    <string name="feelings_vibe">Valence</string>
+    <string name="feelings_energy">Arousal</string>
     <string name="feelings_description_header">DESCRIZIONE</string>
     <string name="feelings_detected_prefix">Emozione Rilevata:</string>
 

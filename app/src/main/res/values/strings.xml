@@ -105,8 +105,8 @@
     <!-- Your Feelings Screen -->
     <string name="feelings_title">Your Feelings</string>
     <string name="feelings_empty">No feelings recorded yet.</string>
-    <string name="feelings_vibe">Vibe</string>
-    <string name="feelings_energy">Energy</string>
+    <string name="feelings_vibe">Valence</string>
+    <string name="feelings_energy">Arousal</string>
     <string name="feelings_description_header">DESCRIPTION</string>
     <string name="feelings_detected_prefix">Detected Emotion:</string>
 
