@@ -12,6 +12,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.components.HeartTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 
 import androidx.compose.ui.res.stringResource
 import com.example.progetto.R
@@ -28,6 +34,8 @@ fun ForgotPasswordScreen(
     viewModel: AuthViewModel = viewModel()
 ) {
     var email by remember { mutableStateOf("") }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val uiState = viewModel.forgotPasswordState
 
     LaunchedEffect(uiState) {
@@ -79,7 +87,17 @@ fun ForgotPasswordScreen(
             HeartTextField(
                 value = email,
                 onValueChange = { email = it },
-                label = stringResource(R.string.register_email_label)
+                label = stringResource(R.string.register_email_label),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                    }
+                )
             )
 
             if (uiState is ForgotPasswordUiState.Error) {

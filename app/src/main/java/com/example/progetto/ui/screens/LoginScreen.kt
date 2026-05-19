@@ -32,6 +32,14 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.res.stringResource
 
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
 fun LoginScreen(
@@ -45,6 +53,9 @@ fun LoginScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var localError by remember { mutableStateOf<String?>(null) }
+    val passwordFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val uiState = viewModel.uiState
 
@@ -88,14 +99,32 @@ fun LoginScreen(
         HeartTextField(
             value = email,
             onValueChange = { email = it },
-            label = stringResource(R.string.login_email_username_label)
+            label = stringResource(R.string.login_email_username_label),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { passwordFocusRequester.requestFocus() }
+            )
         )
 
         HeartTextField(
             value = password,
             onValueChange = { password = it },
             label = stringResource(R.string.login_password_label),
-            isPassword = true
+            isPassword = true,
+            modifier = Modifier.focusRequester(passwordFocusRequester),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                }
+            )
         )
 
         Spacer(modifier = Modifier.height(32.dp))

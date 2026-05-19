@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import org.json.JSONObject
 import java.util.UUID
 
 data class LiveSignalSnapshot(
@@ -385,27 +386,55 @@ class SensorCollectionViewModel(
     }
 
     private fun startWearableMessageCollection() {
+        Log.d(TAG, "Registering WearableMessageListener")
         Wearable.getMessageClient(context).addListener(wearableMessageListener)
     }
 
     private fun stopWearableMessageCollection() {
+        Log.d(TAG, "Removing WearableMessageListener")
         Wearable.getMessageClient(context).removeListener(wearableMessageListener)
     }
 
     inner class WearableMessageListener : com.google.android.gms.wearable.MessageClient.OnMessageReceivedListener {
         override fun onMessageReceived(messageEvent: com.google.android.gms.wearable.MessageEvent) {
-            if (messageEvent.path == "/hr_data") {
-                val data = String(messageEvent.data).split(",")
-                if (data.size >= 2) {
-                    val value = data[0].toFloatOrNull() ?: return
-                    val timestamp = data[1].toLongOrNull() ?: System.currentTimeMillis()
-                    
-                    if (timestamp > lastWearableHrTimestamp) {
-                        lastWearableHrTimestamp = timestamp
-                        if (isSessionActive && !isSessionPaused && wearableHeartRateBuffer.size < WEARABLE_MAX_SAMPLES) {
-                            wearableHeartRateBuffer.add(SensorReading(timestamp, "hr", value))
+            when (messageEvent.path) {
+                "/sensor_series" -> {
+                    val payload = String(messageEvent.data)
+                    try {
+                        val json = JSONObject(payload)
+                        val heartRateJsonArray = json.getJSONArray("heart_rate")
+                        for (i in 0 until heartRateJsonArray.length()) {
+                            val entry = heartRateJsonArray.getJSONObject(i)
+                            val timestamp = entry.getLong("timestamp")
+                            val value = entry.getDouble("value").toFloat()
+                            if (timestamp > lastWearableHrTimestamp) {
+                                lastWearableHrTimestamp = timestamp
+                                if (isSessionActive && !isSessionPaused && wearableHeartRateBuffer.size < WEARABLE_MAX_SAMPLES) {
+                                    wearableHeartRateBuffer.add(SensorReading(timestamp, "hr", value))
+                                }
+                            }
+                        }
+                        Log.d(TAG, "Wearable HR packet received: ${heartRateJsonArray.length()} samples")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error parsing wearable JSON", e)
+                    }
+                }
+                "/hr_data" -> {
+                    val data = String(messageEvent.data).split(",")
+                    if (data.size >= 2) {
+                        val value = data[0].toFloatOrNull() ?: return
+                        val timestamp = data[1].toLongOrNull() ?: System.currentTimeMillis()
+
+                        if (timestamp > lastWearableHrTimestamp) {
+                            lastWearableHrTimestamp = timestamp
+                            if (isSessionActive && !isSessionPaused && wearableHeartRateBuffer.size < WEARABLE_MAX_SAMPLES) {
+                                wearableHeartRateBuffer.add(SensorReading(timestamp, "hr", value))
+                            }
                         }
                     }
+                }
+                else -> {
+                    Log.w(TAG, "Ignoring wearable path: ${messageEvent.path}")
                 }
             }
         }

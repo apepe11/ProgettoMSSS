@@ -10,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
@@ -24,7 +26,9 @@ fun HeartTextField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    isPassword: Boolean = false
+    isPassword: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -36,6 +40,8 @@ fun HeartTextField(
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
         visualTransformation = if (isPassword && !passwordVisible) PasswordVisualTransformation() else VisualTransformation.None,
         trailingIcon = {
             if (isPassword) {

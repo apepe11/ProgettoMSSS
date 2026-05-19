@@ -24,6 +24,14 @@ import com.example.progetto.ui.components.HeartTextField
 import com.example.progetto.ui.theme.HeartMusicTheme
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.LoginUiState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -42,6 +50,11 @@ fun RegisterScreen(
     var password by rememberSaveable { mutableStateOf("") }
     var confirmPassword by rememberSaveable { mutableStateOf("") }
     var localError by rememberSaveable { mutableStateOf<String?>(null) }
+    val emailFocusRequester = remember { FocusRequester() }
+    val passwordFocusRequester = remember { FocusRequester() }
+    val confirmFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val uiState = viewModel.uiState
 
@@ -72,10 +85,59 @@ fun RegisterScreen(
         )
 
         // 2. Campi di Input
-        HeartTextField(value = username, onValueChange = { username = it }, label = stringResource(R.string.register_username_label))
-        HeartTextField(value = email, onValueChange = { email = it }, label = stringResource(R.string.register_email_label))
-        HeartTextField(value = password, onValueChange = { password = it }, label = stringResource(R.string.register_password_label), isPassword = true)
-        HeartTextField(value = confirmPassword, onValueChange = { confirmPassword = it }, label = stringResource(R.string.register_confirm_password_label), isPassword = true)
+        HeartTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = stringResource(R.string.register_username_label),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
+            keyboardActions = KeyboardActions(
+                onNext = { emailFocusRequester.requestFocus() }
+            )
+        )
+        HeartTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = stringResource(R.string.register_email_label),
+            modifier = Modifier.focusRequester(emailFocusRequester),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Email,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { passwordFocusRequester.requestFocus() }
+            )
+        )
+        HeartTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = stringResource(R.string.register_password_label),
+            isPassword = true,
+            modifier = Modifier.focusRequester(passwordFocusRequester),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Next
+            ),
+            keyboardActions = KeyboardActions(
+                onNext = { confirmFocusRequester.requestFocus() }
+            )
+        )
+        HeartTextField(
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
+            label = stringResource(R.string.register_confirm_password_label),
+            isPassword = true,
+            modifier = Modifier.focusRequester(confirmFocusRequester),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Password,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                }
+            )
+        )
 
         val displayError = localError ?: if (uiState is LoginUiState.Error) uiState.message.asString() else null
 

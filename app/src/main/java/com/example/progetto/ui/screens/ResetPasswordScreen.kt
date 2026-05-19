@@ -17,6 +17,14 @@ import com.example.progetto.ui.components.HeartButton
 import com.example.progetto.ui.components.HeartTextField
 import com.example.progetto.ui.viewmodels.AuthViewModel
 import com.example.progetto.ui.viewmodels.ResetPasswordUiState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -28,6 +36,9 @@ fun ResetPasswordScreen(
 ) {
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    val confirmFocusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val uiState = viewModel.resetPasswordState
 
     LaunchedEffect(uiState) {
@@ -81,7 +92,14 @@ fun ResetPasswordScreen(
                 value = newPassword,
                 onValueChange = { newPassword = it },
                 label = "New Password",
-                isPassword = true
+                isPassword = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(
+                    onNext = { confirmFocusRequester.requestFocus() }
+                )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -90,7 +108,18 @@ fun ResetPasswordScreen(
                 value = confirmPassword,
                 onValueChange = { confirmPassword = it },
                 label = "Confirm Password",
-                isPassword = true
+                isPassword = true,
+                modifier = Modifier.focusRequester(confirmFocusRequester),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                    }
+                )
             )
 
             if (uiState is ResetPasswordUiState.Error) {
